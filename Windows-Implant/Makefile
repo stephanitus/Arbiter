@@ -1,3 +1,3 @@
 all:
-	gcc initial.c -o bin/initial.exe -lwinhttp
-	gcc loader.c -o bin/loader.exe -lurlmon -lwininet -lshlwapi
+	gcc initial.c libzmq.dll	-Iinclude	-lwinhttp	-o bin/initial.exe
+	gcc loader.c libzmq.dll 	-Iinclude	-o bin/loader.exe
