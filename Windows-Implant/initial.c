@@ -22,7 +22,13 @@
 #include <winhttp.h>
 #include <tlhelp32.h>
 #include <dirent.h>
+#include <iphlpapi.h>
 #include <zmq.h>
+
+// Use iphlpapi to get interface info
+void NetworkInterfaces(){
+
+}
 
 // Print all running processes
 void RunningProcesses(){
@@ -47,6 +53,30 @@ void ProductID(){
     char value[30];
 	DWORD size = 30*sizeof(char);
 	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductId", RRF_RT_REG_SZ, NULL, (PVOID)&value, &size);
+	printf("value: %s\n", value);
+}
+
+// Retrieve computer name (potentially switch to GetComputerNameEx from sysinfoapi.h)
+void ComputerName(){
+    char value[30];
+	DWORD size = 30*sizeof(char);
+	RegGetValue(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ComputerName", "ComputerName", RRF_RT_REG_SZ, NULL, (PVOID)&value, &size);
+	printf("value: %s\n", value);
+}
+
+// Retrieve current user (TODO get token)
+void CurrentUser(){
+    char value[30];
+	DWORD size = 30*sizeof(char);
+	RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "USERNAME", RRF_RT_REG_SZ, NULL, (PVOID)&value, &size);
+	printf("value: %s\n", value);
+}
+
+// Windows display version (potentially switch to sysinfoapi.h implementation)
+void WindowsVersion(){
+    char value[30];
+	DWORD size = 30*sizeof(char);
+	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "DisplayVersion", RRF_RT_REG_SZ, NULL, (PVOID)&value, &size);
 	printf("value: %s\n", value);
 }
 
@@ -151,7 +181,12 @@ int _tmain(int argc, _TCHAR *argv[]){
     //RunningProcesses();
     //ls(".");
     //ProductID();
+    //ComputerName();
+    //CurrentUser();
+    //WindowsVersion();
+    //NetworkInterfaces();
 
+    
     /*
 
     // Establish peer network
