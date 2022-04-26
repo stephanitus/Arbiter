@@ -94,7 +94,7 @@ wchar_t* OSVersion(){
 }
 
 // List files in directory
-void ls(wchar_t* path){
+void ls(char* path){
     // Open context
     DIR *d;
     d = opendir(path);
@@ -198,7 +198,7 @@ int _tmain(int argc, _TCHAR *argv[]){
             wchar_t* tasks = GetTasks();
             
             int jitter = (rand() % 20) - 10;
-            sleep(30+jitter);
+            Sleep(30+jitter);
         }
     }
 
