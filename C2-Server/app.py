@@ -79,6 +79,15 @@ def createtask(ProductID):
 	db.session.commit()
 	return redirect('/monitor')
 
+@app.route('/tasks/<ProductID>', methods=['GET'])
+def get_tasks(ProductID):
+	tasks = Task.query.filter_by(implant_id=ProductID).all()
+	strTasks = []
+	for task in tasks:
+		strTasks.append(task.cmd)
+	res = ','.join(strTasks)
+	return flask.Response(response=res, status=200)
+
 @app.route('/monitor')
 @flask_login.login_required
 def monitor():
