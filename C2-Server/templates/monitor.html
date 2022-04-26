@@ -1,1 +1,15 @@
 <!-- webpage for admin to see various data about implants -->
+
+{% for implant in implants %}
+<div>
+    <h2>{{implant[0]}}</h2>
+    <p>Pending Tasks: {{implant[1]}}</p>
+    <p>Last check-in: {{implant[2]}}</p>
+    <p>Creation Date: {{implant[3]}}</p>
+    <form method="post" action="/createtask/{{implant[0]}}">
+        <label for="command">Enter a valid cmd.exe command:</label>
+        <input type="Command" name="command" required="true" placeholder="whoami">
+        <input type="submit" value="Create Task" />
+    </form>
+</div>
+{% endfor %}
