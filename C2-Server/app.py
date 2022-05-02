@@ -1,4 +1,3 @@
-from colorama import Fore
 import flask
 from flask import Flask, Response, request, render_template, redirect, send_from_directory, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy

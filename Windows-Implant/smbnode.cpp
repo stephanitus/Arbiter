@@ -39,6 +39,15 @@ int _tmain(int argc, _TCHAR *argv[]){
 
     // Server loop
     for(;;){
+        SECURITY_ATTRIBUTES sa;
+        ZeroMemory(&sa, sizeof(sa));
+        sa.nLength = sizeof(sa);
+        sa.bInheritHandle = false;
+        SECURITY_DESCRIPTOR SD;
+
+        InitializeSecurityDescriptor(&SD, SECURITY_DESCRIPTOR_REVISION);
+        SetSecurityDescriptorDacl(&SD, TRUE, (PACL)NULL, FALSE);
+        sa.lpSecurityDescriptor = &SD;
         // Create server instance
         HANDLE hServer = CreateNamedPipeW(
             L"\\\\.\\pipe\\diplomat",
@@ -48,7 +57,7 @@ int _tmain(int argc, _TCHAR *argv[]){
             BUFSIZE,
             BUFSIZE,
             0,
-            NULL
+            &sa
         );
         if(hServer == INVALID_HANDLE_VALUE){
             printf("Server creation failure.\n");
