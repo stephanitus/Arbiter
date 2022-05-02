@@ -1,0 +1,4 @@
+{
+    "Path": "HOST1, HOST2, HOST4",
+    "Command": "hostname"
+}
