@@ -1,3 +1,4 @@
 all:
-	g++ initial.cpp	-Iinclude	-lwinhttp -liphlpapi	-o bin/initial.exe
-	gcc loader.c -lshlwapi -lwininet -lurlmon -o bin/loader.exe
+	g++ httpnode.cpp	-Iinclude	-lwinhttp -liphlpapi			-o bin/httpnode.exe
+	g++ smbnode.cpp		-Iinclude	-liphlpapi						-o bin/smbnode.exe
+	g++ loader.cpp 					-lshlwapi -lwininet -lurlmon 	-o bin/loader.exe
