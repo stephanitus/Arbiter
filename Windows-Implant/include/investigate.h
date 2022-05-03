@@ -79,7 +79,7 @@ wchar_t* CurrentUser(){
 // Windows release
 wchar_t* OSName(){
     wchar_t* name = (wchar_t*)malloc(50*sizeof(wchar_t));
-    DWORD size = 30*sizeof(char);
+    DWORD size = 50*sizeof(char);
     RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), TEXT("ProductName"), RRF_RT_REG_SZ, NULL, (PVOID)name, &size);
     return name;
 }
