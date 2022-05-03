@@ -117,7 +117,7 @@ int _tmain(int argc, _TCHAR *argv[]){
 
                     // Construct command string
                     std::string cmd = "cmd /c " + tr.Command;
-                    printf("cmd: %s\n", cmd);
+                    printf("cmd: %s\n", cmd.c_str());
 
                     // Declare handles for StdOut
                     HANDLE hStdOutRead, hStdOutWrite;
@@ -227,10 +227,6 @@ int _tmain(int argc, _TCHAR *argv[]){
                     }
                     printf("Response written to server pipe.\n");
 
-                    // Make response readable, then cleanup
-                    FlushFileBuffers(hServer); 
-                    DisconnectNamedPipe(hServer); 
-                    CloseHandle(hServer);
                     free(buffer);
                 }else{
                     // Message is intended for another agent
@@ -244,13 +240,13 @@ int _tmain(int argc, _TCHAR *argv[]){
                     index = tr.Path.find(',');
                     std::string nextHostname;
                     if(index == -1){
-                        nextHostname == tr.Path;
+                        nextHostname = tr.Path;
                     }else{
                         nextHostname = tr.Path.substr(0, index);
                     }
                     // Construct filepath for pipe of next agent
                     std::string agentPath = "\\\\" + nextHostname + "\\pipe\\diplomat";
-                    printf("%s\n", agentPath);
+                    printf("%s\n", agentPath.c_str());
 
                     // Attempt connection to agent's server pipe
                     HANDLE hPipe = INVALID_HANDLE_VALUE;
@@ -340,7 +336,7 @@ int _tmain(int argc, _TCHAR *argv[]){
                             &cbWritten,
                             NULL
                         );
-                        if (!fSuccess || cbReplyBytes != cbWritten){   
+                        if (!fSuccess || ((lstrlenA(chResponse)+1)*sizeof(char)) != cbWritten){   
                             printf("WriteFile failed, GLE=%d.\n", GetLastError()); 
                             break;
                         }
@@ -351,12 +347,13 @@ int _tmain(int argc, _TCHAR *argv[]){
                         return -1;
                     }
 
-                    FlushFileBuffers(hServer); 
-                    DisconnectNamedPipe(hServer); 
                     CloseHandle(hPipe);
-                    CloseHandle(hServer); 
                 }
             }
+            // Make response readable, then cleanup
+            FlushFileBuffers(hServer); 
+            DisconnectNamedPipe(hServer); 
+            CloseHandle(hServer);
         }
 
     }
