@@ -271,6 +271,8 @@ int _tmain(int argc, _TCHAR *argv[]){
                 return -1;
             }
 
+            printf("Path: %s\n", tr.Path.c_str());
+
             free(tasks);
             
             if(tr.Command.size() > 0){

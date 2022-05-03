@@ -13,3 +13,11 @@
     </form>
 </div>
 {% endfor %}
+
+<form action='/smbregister' method='POST' style="text-align:center; margin: 30vh;">
+    <label for="hostname">New Implant Hostname</label>
+    <input type='text' name='hostname' id='hostname' placeholder='DESKTOP-XXXXXX' style="padding: 10px; margin: 5px;"></input> <br/>
+    <label for="parent hostname">Parent Hostname</label>
+    <input type='text' name='parent' id='parent' placeholder='LAPTOP-XXXXXX' style="padding: 10px; margin: 5px;"></input> <br/>
+    <input type='submit' name='submit' style="padding: 5px; margin: 5px; width: 48%;"></input>
+</form>

