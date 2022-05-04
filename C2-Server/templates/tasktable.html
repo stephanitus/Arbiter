@@ -1,0 +1,26 @@
+<!doctype html>
+<link rel= "stylesheet" type= "text/css" href="{{ url_for('static' ,filename='app.css') }}">
+<title>Tasks</title>
+
+<ul>
+    <li><a href="/monitor">Monitor</a></li>
+    <li><a href="/tasktable" class="active">Tasks</a></li>
+    <li><a href="/nodegraph">Graphs</a></li>
+</ul>
+
+<table id="tasks">
+    <tr>
+        <th>Command</th>
+        <th>Status</th>
+        <th>Hostname</th>
+        <th>Output</th>
+    </tr>
+    {% for task in tasks %}
+    <tr>
+        <td>{{task[0]}}</td>
+        <td>{{task[1]}}</td>
+        <td>{{task[2]}}</td>
+        <td>{{task[3]}}</td>
+    </tr>
+    {% endfor %}
+</table>

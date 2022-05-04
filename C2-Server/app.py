@@ -87,6 +87,14 @@ def createtask(Hostname):
 	db.session.commit()
 	return redirect('/monitor')
 
+@app.route('/tasktable', methods=['GET'])
+def show_all_tasks():
+	tasks = Task.query.all()
+	taskStrings = []
+	for task in tasks:
+		taskStrings.append( (task.cmd, task.status, task.implant_id, task.output) )
+	return render_template('tasktable.html', tasks=taskStrings)
+
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
 	# Retrieve task	

@@ -1,7 +1,17 @@
 <!-- webpage for admin to see various data about implants -->
+<!doctype html>
+<link rel= "stylesheet" type= "text/css" href="{{ url_for('static' ,filename='app.css') }}">
+<title>Monitor</title>
 
+<ul>
+    <li><a href="/monitor" class="active">Monitor</a></li>
+    <li><a href="/tasktable">Tasks</a></li>
+    <li><a href="/nodegraph">Graphs</a></li>
+</ul>
+
+<br>
 {% for implant in implants %}
-<div>
+<div class="implant">
     <h2>{{implant[0]}}</h2>
     <p>Pending Tasks: {{implant[1]}}</p>
     <p>Last check-in: {{implant[2]}}</p>
@@ -14,7 +24,7 @@
 </div>
 {% endfor %}
 
-<form action='/smbregister' method='POST' style="text-align:center; margin: 30vh;">
+<form action='/smbregister' method='POST' style="text-align:center; margin: 10vh;">
     <label for="hostname">New Implant Hostname</label>
     <input type='text' name='hostname' id='hostname' placeholder='DESKTOP-XXXXXX' style="padding: 10px; margin: 5px;"></input> <br/>
     <label for="parent hostname">Parent Hostname</label>
