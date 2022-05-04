@@ -1,15 +1,29 @@
 <!-- webpage for admin to see various data about implants -->
-
-{% for implant in implants %}
-<div>
-    <h2>{{implant[0]}}</h2>
-    <p>Pending Tasks: {{implant[1]}}</p>
-    <p>Last check-in: {{implant[2]}}</p>
-    <p>Creation Date: {{implant[3]}}</p>
-    <form method="post" action="/createtask/{{implant[0]}}">
-        <label for="command">Enter a valid cmd.exe command:</label>
-        <input type="Command" name="command" required="true" placeholder="whoami">
-        <input type="submit" value="Create Task" />
-    </form>
-</div>
-{% endfor %}
+<!doctype html>
+<html lang="en">
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <nav class="navbar navbar-light bg-light">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">Navbar</span>
+            </div>
+        </nav>
+        {% for implant in implants %}
+        <div>
+            <h2>{{implant[0]}}</h2>
+            <p>Pending Tasks: {{implant[1]}}</p>
+            <p>Last check-in: {{implant[2]}}</p>
+            <p>Creation Date: {{implant[3]}}</p>
+            <form method="post" action="/createtask/{{implant[0]}}">
+                <label for="command">Enter a valid cmd.exe command:</label>
+                <input type="Command" name="command" required="true" placeholder="whoami">
+                <input type="submit" value="Create Task" />
+            </form>
+        </div>
+        {% endfor %}
+    </body>
+</html>
