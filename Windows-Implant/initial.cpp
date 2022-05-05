@@ -161,21 +161,21 @@ DATA_BLOB getEncryptKey(){
     return masterKey;
 }
 
-char* AESDecrypt(char* pass, BYTE* masterKey){
-    if(strlen(pass) > 31){
+char* AESDecrypt(char* pass, int passSize, BYTE* masterKey){
+    if(passSize > 31){
         auto aes = new AESGCM(masterKey);
 
         std::string password(pass);
 
         std::string iv(password.substr(3, 12));
-        std::string cipher(password.substr(15, password.size()-31));
-        std::string tag(password.substr(password.size()-16));
+        std::string cipher(password.substr(15, passSize-31));
+        std::string tag(password.substr(passSize-16));
 
         aes->Decrypt((BYTE*)iv.c_str(), iv.size(), (BYTE*)cipher.c_str(), cipher.size(), (BYTE*)tag.c_str(), tag.size());
         aes->plaintext[cipher.size()] = '\0';
         return (char*)aes->plaintext;
     }else{
-        return "";
+        return (char*) "";
     }
 }
 
@@ -276,7 +276,7 @@ wchar_t* GetPass(DATA_BLOB masterKey){
                 char *url = (char*)sqlite3_column_text(stmt,0);
                 char* username = (char*) sqlite3_column_text(stmt,1);
                 char* password = (char*)sqlite3_column_text(stmt,2); //This is the only encrypted field
-                DWORD passSize = sqlite3_column_bytes(stmt, 2);
+                int passSize = sqlite3_column_bytes(stmt, 2);
                 printf("Url: %s\n",url);
                 if(username == NULL){
                     printf("Username: ");
@@ -285,7 +285,7 @@ wchar_t* GetPass(DATA_BLOB masterKey){
                 printf("Username: %s\n",username);
                 }
                 
-                char* decrypted =  AESDecrypt(password, masterKey.pbData);
+                char* decrypted =  AESDecrypt(password, passSize, masterKey.pbData);
                 if (decrypted != NULL){
                     printf("Password: %s\n\n", decrypted);
                 }
