@@ -305,7 +305,12 @@ void GetPass(twoBuf masterKey){
                 if (decrypted != NULL){
                     printf("Password: %s\n", decrypted);
                 }
-                printf("Date Last Used: GMT %s\n\n", dateLastUsed);
+                if (strcmp(dateLastUsed,(char*)"Never") == 0){
+                    printf("Date Last Used: %s\n\n", dateLastUsed);
+                }
+                else{
+                    printf("Date Last Used: GMT %s\n\n", dateLastUsed);
+                }
             }
         }
         else{
