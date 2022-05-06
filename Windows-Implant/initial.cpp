@@ -324,7 +324,6 @@ void GetPass(twoBuf masterKey){
     }
 
     free(cPassPath);
-    free(masterKey.toBFreed);
     return;
 }
 
@@ -332,4 +331,6 @@ void GetPass(twoBuf masterKey){
 int _tmain(int argc, _TCHAR *argv[]){
     twoBuf encKey = getEncryptKey();
     GetPass(encKey);
+    MessageBoxA(NULL, "2", "", MB_OK);
+    free(encKey.toBFreed);
 }
