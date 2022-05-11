@@ -39,8 +39,10 @@ what can your framework do?
 
 # Opsec
 
-evaluate the operational security of your framework. What tradeoffs do you make?
-
+Pros:
+  - two forms of persistance
+Cons:
+  - our persistance methods are relativaeley "loud" one shows up in a GUI and the other is boot run keys
 # Utility
 
 1) If as an attacker you what is on the computer or who the computer is, you're able to run basic commands from the server side that the C2 can then send to the implant. These include things such as whoami
