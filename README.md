@@ -28,7 +28,7 @@ C2 that has the same .exe files needed would allow it to work properly with othe
 
 Requirements for  Implant, client, c2...etc
 
-#  Capabilities
+##  Capabilities
 
 what can your framework do?
 
