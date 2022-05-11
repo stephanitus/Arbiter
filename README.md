@@ -40,11 +40,14 @@ what can your framework do?
 # Opsec
 
 Pros:
-  - two forms of persistance
+  - Two forms of persistance. If one fails, we still have another
+  - We use AES-GCM rather than openSSL because GCM is known to be more secure
 
 
 Cons:
   - our persistance methods are relativaeley "loud" one shows up in a GUI and the other is boot run keys
+  - We store our key on our binary
+ 
 # Utility
 
 1) If as an attacker you what is on the computer or who the computer is, you're able to run basic commands from the server side that the C2 can then send to the implant. These include things such as whoami
