@@ -52,11 +52,11 @@ Cons:
 
 # Collaboration breakdown
 
-Stephan - P2P functionality (Both on C2 & Implant) as well as login credentials
-Noam - Methods of persistence
-Ashburn - Looting functionality
-Kamila - AES-GCM Enc/Dec
-Julian - Routes on C2 and building DB
+- Stephan - P2P functionality (Both on C2 & Implant) as well as login credentials
+- Noam - Methods of persistence
+- Ashburn - Looting functionality
+- Kamila - AES-GCM Enc/Dec
+- Julian - Routes on C2 and building DB
 
 
 
