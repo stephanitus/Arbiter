@@ -41,6 +41,8 @@ what can your framework do?
 
 Pros:
   - two forms of persistance
+
+
 Cons:
   - our persistance methods are relativaeley "loud" one shows up in a GUI and the other is boot run keys
 # Utility
