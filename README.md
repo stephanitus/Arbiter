@@ -6,11 +6,11 @@
 - Kamila Uranayeva
 - Noam Metivier
 - Stephan Schmidt
-# Installation 
+## Installation 
 
 
-To install implant you run loader.exe with the c2 server running
 
+### Makefile provided for implant code
 ### C2 Server (Windows)
 ```
 cd .\C2-Server\
@@ -32,17 +32,16 @@ Requirements for  Implant, client, c2...etc
 
 what can your framework do?
 
-- execution, file IO, supported C2 Channels, use of cryptography....etc
+- Our implant is able to use to persistence to continuously run even after the client restarts their computer 
 - For cryptography we use AES-GCM to enc/dec messages
 - For file IO, we read the file where chrome passwords are stored and once this is decrpyted we send this information to the server where it is then stored in the server
-- 
+
 
 # Opsec
 
 Pros:
   - Two forms of persistance. If one fails, we still have another
   - We use AES-GCM rather than openSSL because GCM is known to be more secure
-
 
 Cons:
   - our persistance methods are relativaeley "loud" one shows up in a GUI and the other is boot run keys
@@ -60,10 +59,6 @@ Cons:
 - Ashburn - Looting functionality
 - Kamila - AES-GCM Enc/Dec
 - Julian - Routes on C2 and building DB
-
-
-
-### Makefile provided for implant code
 
 
 
